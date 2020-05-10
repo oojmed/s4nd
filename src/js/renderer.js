@@ -212,7 +212,7 @@ export function update() {
               }
             }
 
-            if (!belowLeftAvaliable && !belowLeftAvaliable && liquidLookup[t.type] && Math.random() > 0.9) {
+            if (!belowLeftAvaliable && !belowLeftAvaliable && liquidLookup[t.type] && Math.random() > 0.5) {
               let sameLeftTile = x <= 0 ? {type: 'nonExistant', updated: false} : tiles[x - 1][y];
               let sameRightTile = x >= sizeWidth - 1 ? {type: 'nonExistant', updated: false} : tiles[x + 1][y];
 
