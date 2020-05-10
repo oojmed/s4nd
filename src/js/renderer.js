@@ -26,8 +26,34 @@ let mouseDown = false;
 let faucetPos = {x: 0, y: 0};
 let faucetOn = false;
 
-let types = ['sand', 'wall', 'air'];
+let types = ['sand', 'water', 'oil', 'wall', 'air'];
 let mouseSelected = 0;
+
+let densityLookup = {
+  'sand': 100,
+  'wall': 999,
+  'air': 1,
+  'water': 50,
+  'oil': 30
+};
+
+let staticLookup = {
+  'sand': false,
+  'water': false,
+  'oil': false,
+
+  'air': true,
+  'wall': true
+};
+
+let liquidLookup = {
+  'water': true,
+  'oil': true,
+
+  'sand': false,
+  'wall': false,
+  'air': false
+};
 
 function initTiles() {
   tiles = Array.from(Array(sizeWidth), () => Array.apply(undefined, Array(sizeHeight)).map((x) => Object. assign({}, baseTile)));
@@ -153,52 +179,91 @@ export function update() {
     for (let y = 0; y < sizeHeight; y++) {
       let t = tiles[x][y];
 
-      let c = {r: 0, g: 0, b: 0};
+      let c = {r: 0, g: 0, b: 0, a: 0};
 
-      if (t.type === 'sand') {
+      let belowTile = tiles[x][y + 1] || {type: 'nonExistant', updated: false};
+
+      if (!staticLookup[t.type]) {
         let bottom = y === sizeHeight - 1;
 
         if (!bottom && !t.updated) {
-          let belowTile = tiles[x][y + 1];
-
-          if (belowTile.type === 'air') {
+          if (densityLookup[belowTile.type] < densityLookup[t.type]) {
             moveTile(t, belowTile);
           } else {
             let belowLeftTile = x <= 0 ? {type: 'nonExistant', updated: false} : tiles[x - 1][y + 1];
             let belowRightTile = x >= sizeWidth - 1 ? {type: 'nonExistant', updated: false} : tiles[x + 1][y + 1];
 
-            if (belowLeftTile.type === 'air' && belowRightTile === 'air') {
-              t.type = 'air';
+            let belowLeftAvaliable = densityLookup[belowLeftTile.type] < densityLookup[t.type];
+            let belowRightAvaliable = densityLookup[belowRightTile.type] < densityLookup[t.type];
 
+            if (belowLeftAvaliable && belowRightAvaliable) {
               if (Math.random() >= 0.5) {
                 moveTile(t, belowRightTile);
               } else {
                 moveTile(t, belowLeftTile);
               }
             } else {
-              if (belowLeftTile.type === 'air') {
+              if (belowLeftAvaliable) {
                 moveTile(t, belowLeftTile);
               }
 
-              if (belowRightTile.type === 'air') {
+              if (belowRightAvaliable) {
                 moveTile(t, belowRightTile);
+              }
+            }
+
+            if (!belowLeftAvaliable && !belowLeftAvaliable && liquidLookup[t.type] && Math.random() > 0.9) {
+              let sameLeftTile = x <= 0 ? {type: 'nonExistant', updated: false} : tiles[x - 1][y];
+              let sameRightTile = x >= sizeWidth - 1 ? {type: 'nonExistant', updated: false} : tiles[x + 1][y];
+
+              let sameLeftAvaliable = densityLookup[sameLeftTile.type] < densityLookup[t.type];
+              let sameRightAvaliable = densityLookup[sameRightTile.type] < densityLookup[t.type];
+
+              if (sameLeftAvaliable && sameRightAvaliable) {
+                if (Math.random() >= 0.5) {
+                  moveTile(t, sameRightTile);
+                } else {
+                  moveTile(t, sameLeftTile);
+                }
+              } else {
+                if (sameLeftAvaliable) {
+                  moveTile(t, sameLeftTile);
+                }
+
+                if (sameRightAvaliable) {
+                  moveTile(t, sameRightTile);
+                }
               }
             }
           }
         }
+      }
 
-        c = {r: 250 - (t.rand * 40), g: 201 - (t.rand * 30), b: 55};
+      if (t.type === 'sand') {
+        c = {r: 250 - (t.rand * 40), g: 201 - (t.rand * 30), b: 55, a: 255};
+      }
+
+      if (t.type === 'water') {
+        c = {r: 60 - (t.rand * 40), g: 190 - (t.rand * 20), b: 230, a: 150};
+      }
+
+      if (t.type === 'oil') {
+        c = {r: 100 - (t.rand * 20), g: 100 - (t.rand * 20), b: 100 - (t.rand * 20), a: 150};
       }
 
       if (t.type === 'wall') {
-        c = {r: 120 - (t.rand * 45), g: 120 - (t.rand * 40), b: 120 - (t.rand * 35)};
+        c = {r: 120 - (t.rand * 45), g: 120 - (t.rand * 40), b: 120 - (t.rand * 35), a: 255};
       }
 
+      /*if (densityLookup[belowTile.type] < densityLookup[t.type]) {
+        moveTile(t, belowTile);
+      }*/
+
       let off = (x + (y * sizeWidth)) * 4;
-      pixels[off] = c.r;
+      pixels[off] = c.r; //t.updated ? 255 : 0;
       pixels[off + 1] = c.g;
       pixels[off + 2] = c.b;
-      pixels[off + 3] = 255;
+      pixels[off + 3] = c.a;
     }
   }
 
