@@ -10,6 +10,7 @@
   - stone
   - lava
   - glass
+- Added new experimental touch support
 
 ## v0.2.0
 - Added density system
