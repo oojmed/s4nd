@@ -92,6 +92,20 @@ function initTiles() {
 }
 
 function mouseDownHandler(e) {
+  let which = e.which || 1;
+
+  if (e.which === 3) {
+    mouseSelected++;
+
+    if (mouseSelected > types.length - 1) {
+      mouseSelected = 0;
+    }
+
+    selEl.innerText = types[mouseSelected];
+
+    return;
+  }
+
   mousePos = {x: e.clientX, y: e.clientY};
 
   mouseDraw();
