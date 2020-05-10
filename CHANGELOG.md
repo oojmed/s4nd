@@ -1,5 +1,16 @@
 # s4nd changelog
 
+## v0.3.0
+- Added reaction system
+- Added reactions:
+  - water + lava = stone
+  - sand + lava = glass
+  - oil + lava = air (destroy both reactants)
+- Added materials:
+  - stone
+  - lava
+  - glass
+
 ## v0.2.0
 - Added density system
 - Added liquid system
