@@ -15,7 +15,7 @@ let sizeHeight = Math.floor(window.innerHeight / scaleFactor);
 let imgData;
 let pixels;
 
-let fpsEl, selEl;
+let fpsEl, selEl, dbgEl;
 
 let baseTile = { type: 'air', updated: false, rand: 0 };
 
@@ -64,6 +64,9 @@ export function init() {
 
   fpsEl = document.getElementById('fps');
   selEl = document.getElementById('sel');
+  dbgEl = document.getElementById('dbg');
+
+  dbgEl.innerText = `${sizeWidth}x${sizeHeight} - ${sizeWidth * sizeHeight}`;
 
   initTiles();
 
@@ -223,5 +226,5 @@ export function update() {
 
   frame++;
 
-  setTimeout(update, 0); //requestAnimationFrame(update);
+  requestAnimationFrame(update);
 }
