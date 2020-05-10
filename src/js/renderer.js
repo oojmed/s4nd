@@ -223,5 +223,5 @@ export function update() {
 
   frame++;
 
-  requestAnimationFrame(update);
+  setTimeout(update, 0); //requestAnimationFrame(update);
 }
