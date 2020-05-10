@@ -7,7 +7,7 @@ let frame = 0;
 
 let tiles = [];
 
-let scaleFactor = 4;
+let scaleFactor = 8;
 
 let sizeWidth = Math.floor(window.innerWidth / scaleFactor);
 let sizeHeight = Math.floor(window.innerHeight / scaleFactor);
