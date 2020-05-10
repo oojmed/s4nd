@@ -1,0 +1,27 @@
+{
+    "short_name": "genEvo",
+    "name": "genEvo",
+
+    "icons": [
+        {
+          "src": "./icons/logo_192.png",
+          "type": "image/png",
+          "sizes": "192x192"
+        },
+        {
+          "src": "./icons/logo_512.png",
+          "type": "image/png",
+          "sizes": "512x512"
+        }
+    ],
+
+    "start_url": "/",
+
+    "background_color": "#1f1f1f",
+    "theme_color": "#1f1f1f",
+
+    "display": "standalone",
+    "orientation": "portrait",
+
+    "description": "no"
+}
