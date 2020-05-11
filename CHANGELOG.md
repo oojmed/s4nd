@@ -1,5 +1,10 @@
 # s4ndb0x changelog
 
+## v0.4.0
+- Optimised a lot
+- Added small UI in top right corner
+- Increased default scale factor (again)
+
 ## v0.3.0
 - Added reaction system
 - Added reactions:
@@ -11,6 +16,7 @@
   - lava
   - glass
 - Added new experimental touch support
+
 
 ## v0.2.0
 - Added density system

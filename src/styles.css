@@ -26,10 +26,26 @@ html, body {
 
 #info {
     position: absolute;
-    top: 10px;
-    left: 12px;
+    top: 0;
+    left: 0;
+
+    padding: 15px;
+
+    width: calc(100% - 30px);
 
     font-size: 16px;
 
     opacity: 0.5;
+
+    user-select: none;
+}
+
+select {
+    color: rgba(255, 255, 255, .95);
+    background-color: transparent;
+}
+
+option {
+    background-color: black;
+    color: rgba(255, 255, 255, .95);
 }

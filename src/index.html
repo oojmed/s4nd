@@ -28,8 +28,13 @@
 
 <body>
     <div id="info">
-        <span id="fps">60</span> fps - material: 
-        <span id="sel">water</span> | s4ndb0x v0.3.0-9
+        <div style="float: right;">
+            material: <select id="materialSelect"></select> <br>
+            scale: <select id="scaleSelect"></select> <br>
+            framelock: <input type="checkbox" id="framelockCheckbox">
+        </div>
+
+        <span id="fps">60</span> fps | s4ndb0x v0.4.0-10
         <br/>(dbg: <span id="dbg"></span>)
     </div>
 </body>

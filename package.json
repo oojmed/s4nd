@@ -1,6 +1,6 @@
 {
   "name": "s4nd",
-  "version": "0.1.0",
+  "version": "0.4.0",
   "description": "Genetic evolution / creature simulator.",
   "main": "code.js",
   "scripts": {
