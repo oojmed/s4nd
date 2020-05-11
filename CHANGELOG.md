@@ -1,4 +1,4 @@
-# s4nd changelog
+# s4ndb0x changelog
 
 ## v0.3.0
 - Added reaction system
