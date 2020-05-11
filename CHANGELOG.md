@@ -4,6 +4,7 @@
 - Optimised a lot
 - Added small UI in top right corner
 - Increased default scale factor (again)
+- Darken colors when with material borders
 
 ## v0.3.0
 - Added reaction system
