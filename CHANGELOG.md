@@ -1,10 +1,22 @@
 # s4ndb0x changelog
 
+## v0.5.0
+- Added animation to liquids
+- Added more complex reaction system
+- Added materials:
+  - fire
+- Added floating and old age (turns to air after X seconds) systems
+- Added reactions: (* more complex backend options)
+  - oil + lava = fire
+  - oil + fire = fire*
+
+
 ## v0.4.0
 - Optimised a lot
 - Added small UI in top right corner
 - Increased default scale factor (again)
 - Darken colors when with material borders
+
 
 ## v0.3.0
 - Added reaction system

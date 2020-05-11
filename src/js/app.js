@@ -9,7 +9,7 @@ let useRequestAnim = false;
 
 let tiles = [];
 
-let scaleFactor = 10;
+let scaleFactor = 12;
 
 let sizeWidth = Math.floor(window.innerWidth / scaleFactor);
 let sizeHeight = Math.floor(window.innerHeight / scaleFactor);
@@ -19,7 +19,7 @@ let pixels;
 
 let fpsEl, dbgEl, materialSelectEl, scaleSelectEl, frameLockCheckboxEl;
 
-let baseTile = { material: 'air', updated: false, rand: 0 };
+let baseTile = { material: 'air', typeUpdated: false, reactionUpdated: false, rand: 0, age: 0 };
 
 let mousePos = {x: 0, y: 0};
 let mouseDrawInterval;
@@ -28,7 +28,7 @@ let mouseDown = false;
 let faucetPos = {x: 0, y: 0};
 let faucetOn = false;
 
-let materials = ['water', 'oil', 'lava', 'sand', 'glass', 'stone', 'wall', 'air'];
+let materials = ['water', 'oil', 'lava', 'sand', 'glass', 'stone', 'wall', 'air', 'fire'];
 let mouseSelected = 'water';
 
 let materialColors = {
@@ -39,7 +39,8 @@ let materialColors = {
   'lava': function (t) { return { r: 230, g: 125 - (t.rand * 20), b: 10 + (t.rand * 30), a: 150 } },
   'stone': function (t) { return { r: 200 - (t.rand * 40), g: 200 - (t.rand * 40), b: 200 - (t.rand * 40), a: 255 } },
   'glass': function (t) { return { r: 250 - (t.rand * 20), g: 250 - (t.rand * 20), b: 250 - (t.rand * 20), a: 230 } },
-  'air': function (t) { return { r: 0, g: 0, b: 0, a: 0 } }
+  'air': function (t) { return { r: 0, g: 0, b: 0, a: 0 } },
+  'fire': function (t) { return { r: 255, g: 65 + (t.rand * 20), b: 25 + (t.rand * 30), a: (Math.sin(t.age * 30) + 0.3) * 255 } }
 };
 
 let densityLookup = {
@@ -48,7 +49,8 @@ let densityLookup = {
   'wall': 9999,
   'stone': 700,
   
-  'air': 1,
+  'air': 10,
+  'fire': 200,
   
   'water': 50,
   'oil': 30,
@@ -60,6 +62,8 @@ let staticLookup = {
   'oil': false,
   'lava': false,
   
+  'fire': true,
+
   'sand': false,
   'stone': false,
   'glass': false,
@@ -72,25 +76,64 @@ let liquidLookup = {
   'water': true,
   'oil': true,
   'lava': true,
-  
+
   'sand': false,
   'stone': false,
   'wall': false,
   'glass': false,
   
-  'air': false
+  'air': false,
+  'fire': false
+};
+
+let floatLookup = {
+  'water': false,
+  'oil': false,
+  'lava': false,
+
+  'sand': false,
+  'stone': false,
+  'glass': false,
+  
+  'air': false,
+  'wall': false,
+
+  'fire': true
+};
+
+let oldAgeLookup = {
+  'water': false,
+  'oil': false,
+  'lava': false,
+
+  'sand': false,
+  'stone': false,
+  'glass': false,
+  
+  'air': false,
+  'wall': false,
+
+  'fire': 0.1
 };
 
 let reactions = [
   {reactants: ['water', 'lava'], product: 'stone'},
   {reactants: ['sand', 'lava'], product: 'glass'},
-  {reactants: ['oil', 'lava'], product: 'air'}
+  {reactants: ['oil', 'lava'], product: 'fire'},
+  {reactants: ['oil', 'fire'], product: 'fire', forced: 0.5, chance: 5}
 ];
 
 function initTiles() {
-  tiles = Array.from(Array(sizeWidth), () => Array.apply(undefined, Array(sizeHeight)).map((x) => Object. assign({}, baseTile)));
+  tiles = Array.from(Array(sizeWidth), () => Array.apply(undefined, Array(sizeHeight)).map((x) => Object.assign({}, baseTile)));
   
-  tiles = tiles.map((x) => x.map((t) => { t.rand = Math.random(); return t; }));
+  tiles = tiles.map((p, x) => p.map((t, y) => {
+    t.rand = Math.random();
+
+    t.x = x;
+    t.y = y;
+
+    return t;
+  }));
   
   // border
   for (let x = 0; x < sizeWidth; x++) {
@@ -230,6 +273,7 @@ function mouseDraw(pos = mousePos) {
   let actualPosY = Math.floor(pos.y / scaleFactor);
   
   tiles[actualPosX][actualPosY].material = mouseSelected;
+  tiles[actualPosX][actualPosY].age = 0;
 }
 
 function renderText(x, y, size, color, text, align) {
@@ -242,14 +286,24 @@ function renderText(x, y, size, color, text, align) {
 
 function moveTile(originalTile, newTile) {
   let originalMaterial = originalTile.material.slice();
+  let originalAge = Number(originalTile.age);
+  let originalReactionUpdated = Boolean(originalTile.reactionUpdated);
+
   originalTile.material = newTile.material;
   newTile.material = originalMaterial;
   
-  newTile.updated = true;
+  newTile.typeUpdated = true;
+  originalTile.typeUpdated = true;
+
+  originalTile.age = newTile.age;
+  newTile.age = originalAge;
+
+  originalTile.reactionUpdated = newTile.reactionUpdated;
+  newTile.reactionUpdated = originalReactionUpdated;
 }
 
 export function update() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  let deltaTime = performance.now() - lastCalledTime;
   
   if (faucetOn) {
     mouseDraw(faucetPos);
@@ -258,13 +312,13 @@ export function update() {
   for (let x = 0; x < sizeWidth; x++) {
     for (let y = 0; y < sizeHeight; y++) {
       let t = tiles[x][y];
-      
-      let c = materialColors[t.material](t);
-      
-      let aboveTile = tiles[x][y - 1] || {material: 'nonExistant', updated: false};
-      let belowTile = tiles[x][y + 1] || {material: 'nonExistant', updated: false};
-      let sameLeftTile = x <= 0 ? {material: 'nonExistant', updated: false} : tiles[x - 1][y];
-      let sameRightTile = x >= sizeWidth - 1 ? {material: 'nonExistant', updated: false} : tiles[x + 1][y];
+
+      t.age += deltaTime / 1000;
+
+      let aboveTile = tiles[x][y - 1] || {material: 'nonExistant', typeUpdated: false, reactionUpdated: false};
+      let belowTile = tiles[x][y + 1] || {material: 'nonExistant', typeUpdated: false, reactionUpdated: false};
+      let sameLeftTile = x <= 0 ? {material: 'nonExistant', typeUpdated: false, reactionUpdated: false} : tiles[x - 1][y];
+      let sameRightTile = x >= sizeWidth - 1 ? {material: 'nonExistant', typeUpdated: false, reactionUpdated: false} : tiles[x + 1][y];
       
       let adjacentNeighbours = [aboveTile, belowTile, sameLeftTile, sameRightTile];
       
@@ -276,6 +330,24 @@ export function update() {
         if (neighbour.material === 'air') airCount++;
         if (neighbour.material === 'nonExistant') nonExistantCount++;
       }
+
+      if (oldAgeLookup[t.material] !== false) {
+        if (t.age > oldAgeLookup[t.material]) {
+          t.material = 'air';
+          t.age = 0;
+        }
+      }
+
+      let c = materialColors[t.material](t);
+
+      let randIncrease = 0;
+      randIncrease = liquidLookup[t.material] ? ((Math.random() * 2 - 1) / 20) : randIncrease;
+      randIncrease = t.material === 'fire' ? ((Math.random() * 2 - 1) / 5) : randIncrease;
+
+      t.rand += randIncrease;
+
+      t.rand = t.rand > 1 ? 1 : t.rand;
+      t.rand = t.rand < 0 ? 0 : t.rand;
 
       if (t.material !== 'wall' && adjSameCount + airCount + nonExistantCount !== 4) {
         let orig = Number(t.rand);
@@ -290,12 +362,12 @@ export function update() {
         if (!staticLookup[t.material]) {
           let bottom = y === sizeHeight - 1;
           
-          if (!bottom && !t.updated) {
+          if (!bottom && !t.typeUpdated) {
             if (densityLookup[belowTile.material] < densityLookup[t.material]) {
               moveTile(t, belowTile);
             } else {
-              let belowLeftTile = x <= 0 ? {material: 'nonExistant', updated: false} : tiles[x - 1][y + 1];
-              let belowRightTile = x >= sizeWidth - 1 ? {material: 'nonExistant', updated: false} : tiles[x + 1][y + 1];
+              let belowLeftTile = x <= 0 ? {material: 'nonExistant', typeUpdated: false, reactionUpdated: false} : tiles[x - 1][y + 1];
+              let belowRightTile = x >= sizeWidth - 1 ? {material: 'nonExistant', typeUpdated: false, reactionUpdated: false} : tiles[x + 1][y + 1];
               
               let belowLeftAvaliable = densityLookup[belowLeftTile.material] < densityLookup[t.material];
               let belowRightAvaliable = densityLookup[belowRightTile.material] < densityLookup[t.material];
@@ -344,19 +416,54 @@ export function update() {
           if (!r.reactants.includes(t.material)) continue;
           
           for (let neighbouringTile of adjacentNeighbours) {
-            if (neighbouringTile.material === t.material) continue;
+            if (neighbouringTile.material === t.material || neighbouringTile.reactionUpdated) continue;
             
             if (r.reactants.includes(neighbouringTile.material)) {
+              if (Math.random() > (r.chance || 100) / 100) continue;
+
               let product = r.product.slice();
               
               t.material = product;
               neighbouringTile.material = product;
+
+              t.reactionUpdated = true;
+              neighbouringTile.reactionUpdated = true;
+
+              t.age = 0;
+              neighbouringTile.age = 0;
+
+              if (r.forced !== undefined) {
+                t.forced = [r.product.slice(), Number(r.forced)];
+                neighbouringTile.forced = [r.product.slice(), Number(r.forced)];
+              }
+
+              break;
             }
+          }
+        }
+
+        if (floatLookup[t.material]) {
+          if (densityLookup[aboveTile.material] < densityLookup[t.material]) {
+            moveTile(t, aboveTile);
           }
         }
       }
       
+      if (t.forced !== undefined) {
+        t.age = 0;
+        t.material = t.forced[0];
+        t.forced[1] -= deltaTime / 1000;
+    
+        if (t.forced[1] <= 0) {
+          t.forced = undefined;
+          delete t.forced;
+        }
+
+        c = materialColors[t.material](t);
+      }
+
       let off = (x + (y * sizeWidth)) * 4;
+
       pixels[off] = c.r;
       pixels[off + 1] = c.g;
       pixels[off + 2] = c.b;
@@ -365,8 +472,13 @@ export function update() {
   }
   
   ctx.putImageData(imgData, 0, 0);
-  
-  tiles.map((x) => x.map((t) => t.updated = false));
+
+  for (let x = 0; x < sizeWidth; x++) {
+    for (let y = 0; y < sizeHeight; y++) {
+      tiles[x][y].typeUpdated = false;
+      tiles[x][y].reactionUpdated = false;
+    }
+  }
   
   if (!lastCalledTime) {
     lastCalledTime = performance.now();
@@ -377,7 +489,7 @@ export function update() {
     
     lastCalledTime = performance.now();
 
-    fpsEl.innerText = fps;
+    fpsEl.innerText = `frame ${frame} - ${fps}`;
   }
   
   frame++;
