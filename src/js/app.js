@@ -1,7 +1,9 @@
+import * as PerfOverlay from './perfOverlay';
+import { addTime } from './exportedVars';
+
 export let canvas, ctx;
 export let fps = 0;
 let lastCalledTime;
-let fpsArr = [];
 
 let frame = 0;
 
@@ -266,6 +268,8 @@ window.onload = function() {
       faucetOn = !faucetOn;
     }
   };
+
+  PerfOverlay.init();
 };
 
 function mouseDraw(pos = mousePos) {
@@ -303,7 +307,8 @@ function moveTile(originalTile, newTile) {
 }
 
 export function update() {
-  let deltaTime = performance.now() - lastCalledTime;
+  let startTime = performance.now();
+  let deltaTime = startTime - lastCalledTime;
   
   if (faucetOn) {
     mouseDraw(faucetPos);
@@ -479,7 +484,19 @@ export function update() {
       tiles[x][y].reactionUpdated = false;
     }
   }
+
+  frame++;
+
+  if (useRequestAnim) {
+    requestAnimationFrame(update);
+  } else {
+    setTimeout(update, 0);
+  }
+
+  let timeTaken = performance.now() - startTime;
   
+  addTime(timeTaken);
+
   if (!lastCalledTime) {
     lastCalledTime = performance.now();
     fps = 0;
@@ -489,14 +506,6 @@ export function update() {
     
     lastCalledTime = performance.now();
 
-    fpsEl.innerText = `frame ${frame} - ${fps}`;
-  }
-  
-  frame++;
-  
-  if (useRequestAnim) {
-    requestAnimationFrame(update);
-  } else {
-    setTimeout(update, 0);
+    fpsEl.innerText = `${Math.floor(timeTaken)}ms - ${fps}`;
   }
 }

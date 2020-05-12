@@ -24,6 +24,15 @@ html, body {
     background-color: #111111;*/
 }
 
+#perfOverlay {
+    position: absolute;
+
+    top: 70px;
+    left: 30px;
+
+    opacity: 0.5;
+}
+
 #info {
     position: absolute;
     top: 0;
