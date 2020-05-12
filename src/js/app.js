@@ -1,5 +1,6 @@
 import * as PerfOverlay from './perfOverlay';
 import { addTime } from './exportedVars';
+import { betterSinAngle, betterSinRadians } from './sinTaylor';
 
 export let canvas, ctx;
 export let fps = 0;
@@ -41,8 +42,8 @@ let materialColors = {
   'lava': function (t) { return { r: 230, g: 125 - (t.rand * 20), b: 10 + (t.rand * 30), a: 150 } },
   'stone': function (t) { return { r: 200 - (t.rand * 40), g: 200 - (t.rand * 40), b: 200 - (t.rand * 40), a: 255 } },
   'glass': function (t) { return { r: 250 - (t.rand * 20), g: 250 - (t.rand * 20), b: 250 - (t.rand * 20), a: 230 } },
-  'air': function (t) { return { r: 0, g: 0, b: 50, a: 50 } },
-  'fire': function (t) { return { r: 255, g: 65 + (t.rand * 20), b: 25 + (t.rand * 30), a: (Math.sin(t.age * 30) + 0.3) * 255 } }
+  'air': function (t) { return { r: 0, g: 0, b: 0, a: 0 / t.age } }, // you may be wondering why age is being used here, and it's because if t.age is used in only one function (fire) then JIT breaks it in browsers (at least in chromium)
+  'fire': function (t) { return { r: 255, g: 65 + (t.rand * 20), b: 25 + (t.rand * 30), a: (betterSinRadians(t.age * 30) + 0.3) * 255 } }
 };
 
 let densityLookup = {
@@ -308,6 +309,7 @@ function moveTile(originalTile, newTile) {
 export function update() {
   let startTime = performance.now();
   let deltaTime = startTime - lastCalledTime;
+  deltaTime = isNaN(deltaTime) ? 0 : deltaTime;
   
   if (faucetOn) {
     mouseDraw(faucetPos);
@@ -509,15 +511,3 @@ export function update() {
     fpsEl.style.color = timeTaken > 3 ? 'red' : 'white';
   }
 }
-
-window.checkTileCount = () => {
-  let counts = {};
-
-  tiles.forEach((p) => { p.forEach((t) => {
-    counts[t.material] = (counts[t.material] || 0) + 1;
-  })});
-
-  console.log(counts);
-};
-
-window.getTiles = () => tiles;
