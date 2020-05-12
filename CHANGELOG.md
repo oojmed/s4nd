@@ -1,5 +1,10 @@
 # s4ndb0x changelog
 
+## v0.5.1
+- [Firefox only] Fixed bug where material was made in top left corner when selecting material from material dropdown
+- Fixed bug where material would be made when clicking a checkbox
+
+
 ## v0.5.0
 - Added animation to liquids
 - Added more complex reaction system

@@ -188,7 +188,7 @@ function initScaleSelect() {
 }
 
 function mouseDownHandler(e) {
-  if (e.target.id.includes('Select')) return;
+  if (e.target.localName === 'select' || e.target.localName === 'option' || e.target.localName === 'input') return;
   
   mousePos = {x: e.clientX, y: e.clientY};
   
