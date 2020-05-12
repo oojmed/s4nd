@@ -63,13 +63,12 @@ let staticLookup = {
   'water': false,
   'oil': false,
   'lava': false,
-  
-  'fire': true,
 
   'sand': false,
   'stone': false,
   'glass': false,
   
+  'fire': true,
   'air': true,
   'wall': true
 };
@@ -77,13 +76,13 @@ let staticLookup = {
 let liquidLookup = {
   'water': true,
   'oil': true,
-  'lava': true,
 
   'sand': false,
   'stone': false,
   'wall': false,
   'glass': false,
   
+  'fire': false,
   'air': false,
   'fire': false
 };
@@ -269,7 +268,7 @@ window.onload = function() {
     }
   };
 
-  PerfOverlay.init();
+  //PerfOverlay.init();
 };
 
 function mouseDraw(pos = mousePos) {
@@ -495,7 +494,7 @@ export function update() {
 
   let timeTaken = performance.now() - startTime;
   
-  addTime(timeTaken);
+  // addTime(timeTaken);
 
   if (!lastCalledTime) {
     lastCalledTime = performance.now();

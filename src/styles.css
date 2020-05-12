@@ -25,6 +25,8 @@ html, body {
 }
 
 #perfOverlay {
+    z-index: 1;
+
     position: absolute;
 
     top: 70px;

@@ -3,7 +3,7 @@ import { frameTimeArr } from './exportedVars';
 export let canvas, ctx;
 
 let graphWidth = window.innerWidth - 200;
-let graphHeight = 200;
+let graphHeight = 150;
 
 export function init() {
   canvas = document.createElement('canvas');
@@ -58,23 +58,25 @@ export function update() {
   frameTimeArr.forEach((x, i) => {
     let relValue = getRelativePos(x, maxValue);
 
-    if (x > 5 || lastValue > 5) {
+    if (x > 5) {
       ctx.stroke();
 
       ctx.beginPath();
-      ctx.moveTo(6 + ((i - 1) * 2), lastRelValue);
+      ctx.moveTo(6 + ((i - 1) * 2), graphHeight - lastRelValue);
 
       ctx.strokeStyle = 'red';
       
-      ctx.lineTo(6 + (i * 2), relValue);
+      ctx.lineTo(6 + (i * 2), graphHeight - relValue);
 
       ctx.stroke();
+
+      renderText(6 + (i * 2) + 1, graphHeight - relValue - 10, 16, 'red', `${Math.floor(x)}ms`, 'left');
 
       ctx.beginPath();
 
       ctx.strokeStyle = 'lightgreen';
     } else {
-      ctx.lineTo(6 + (i * 2), relValue);
+      ctx.lineTo(6 + (i * 2), graphHeight - relValue);
     }
 
     lastValue = x;
