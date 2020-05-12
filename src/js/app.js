@@ -76,6 +76,7 @@ let staticLookup = {
 
 let liquidLookup = {
   'water': true,
+  'lava': true,
   'oil': true,
 
   'sand': false,
@@ -85,7 +86,6 @@ let liquidLookup = {
   
   'fire': false,
   'air': false,
-  'fire': false
 };
 
 let floatLookup = {

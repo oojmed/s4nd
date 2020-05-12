@@ -1,5 +1,9 @@
 # s4ndb0x changelog
 
+## v0.5.3
+- Fixed that lava was not marked as a liquid
+
+
 ## v0.5.2
 - Fixed very annoying and weird bug which decreased performance by ~50% in many browsers if fire was ever made
 
