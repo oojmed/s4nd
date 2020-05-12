@@ -1,5 +1,9 @@
 # s4ndb0x changelog
 
+## v0.5.2
+- Fixed very annoying and weird bug which decreased performance by ~50% in many browsers if fire was ever made
+
+
 ## v0.5.1
 - [Firefox only] Fixed bug where material was made in top left corner when selecting material from material dropdown
 - Fixed bug where material would be made when clicking a checkbox
