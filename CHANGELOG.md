@@ -16,6 +16,7 @@
 - Removed outdated debug (dbg) text on the second line of the top left info text
 - Added gunpowder material
 - Added dirt material
+- Made liquids brighter
 
 
 ## v0.5.3
