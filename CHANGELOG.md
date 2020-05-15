@@ -12,6 +12,9 @@
 - Added erase (selects air) on right click
 - Auto resize when page size changes
 - Added dropdown that now allows choice of how big the drawing cursor is
+- Added outline to show where tiles will be drawn
+- Removed outdated debug (dbg) text on the second line of the top left info text
+- Added gunpowder material
 
 
 ## v0.5.3

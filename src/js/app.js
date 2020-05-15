@@ -20,7 +20,7 @@ let sizeHeight = Math.floor(window.innerHeight / scaleFactor);
 let imgData;
 let pixels;
 
-let fpsEl, dbgEl, materialSelectEl, faucetCheckboxEl, scaleSelectEl, cursorSelectEl, frameLockCheckboxEl;
+let fpsEl, materialSelectEl, faucetCheckboxEl, scaleSelectEl, cursorSelectEl, frameLockCheckboxEl;
 
 let baseTile = { material: 'air', typeUpdated: false, reactionUpdated: false, rand: 0, age: 0 };
 
@@ -31,7 +31,7 @@ let mouseDown = false;
 
 let faucetOn = false;
 
-let materials = ['water', 'crude_oil', 'lava', 'acid', 'sand', 'glass', 'stone', 'wall', 'air', 'fire'];
+let materials = ['water', 'crude_oil', 'lava', 'acid', 'sand', 'gunpowder', 'glass', 'stone', 'wall', 'air', 'fire'];
 let mouseSelected = 'water';
 let oldMouseSelected = undefined;
 
@@ -43,9 +43,10 @@ let materialColors = {
   'lava': (t) => ({ r: 230, g: 125 - (t.rand * 20), b: 10 + (t.rand * 30), a: 150 }),
   'stone': (t) => ({ r: 200 - (t.rand * 40), g: 200 - (t.rand * 40), b: 200 - (t.rand * 40), a: 255 }),
   'glass': (t) => ({ r: 250 - (t.rand * 20), g: 250 - (t.rand * 20), b: 250 - (t.rand * 20), a: 230 }),
-  'air': (t) => ({ r: 0, g: 0, b: 0 / (t.faucet === undefined ? 0 : 0), a: 0 / t.age }), // you may be wondering why age is being used here, and it's because if t.age is used in only one function (fire) then JIT breaks it in browsers (at least in chromium)
+  'air': (t) => ({ r: 0, g: 0, b: 20 / (t.faucet === undefined ? 0 : 0), a: 20 - (0 / t.age) }), // you may be wondering why age is being used here, and it's because if t.age is used in only one function (fire) then JIT breaks it in browsers (at least in chromium)
   'fire': (t) => ({ r: 255, g: 65 + (t.rand * 20), b: 25 + (t.rand * 30), a: (betterSinRadians(t.age * 22) + 0.3) * 255 }),
-  'acid': (t) => ({ r: 80 - (t.rand * 70), g: 225, b: 80 - (t.rand * 65), a: 200})
+  'acid': (t) => ({ r: 80 - (t.rand * 70), g: 225, b: 80 - (t.rand * 65), a: 200}),
+  'gunpowder': (t) => ({r: 50 - (t.rand * 40), g: 50 - (t.rand * 40), b: 50 - (t.rand * 40), a: 255})
 };
 
 let densityLookup = {
@@ -53,6 +54,7 @@ let densityLookup = {
   'glass': 800,
   'wall': 9999,
   'stone': 700,
+  'gunpowder': 300,
   
   'air': 5,
   'fire': 200,
@@ -68,6 +70,7 @@ let staticLookup = {
   'crude_oil': false,
   'lava': false,
   'acid': false,
+  'gunpowder': false,
 
   'sand': false,
   'stone': false,
@@ -84,6 +87,7 @@ let liquidLookup = {
   'crude_oil': true,
   'acid': true,
 
+  'gunpowder': false,
   'sand': false,
   'stone': false,
   'wall': false,
@@ -98,6 +102,7 @@ let floatLookup = {
   'crude_oil': false,
   'lava': false,
   'acid': false,
+  'gunpowder': false,
 
   'sand': false,
   'stone': false,
@@ -115,6 +120,7 @@ let oldAgeLookup = {
   'lava': false,
   'acid': false,
 
+  'gunpowder': false,
   'sand': false,
   'stone': false,
   'glass': false,
@@ -131,7 +137,8 @@ let reactions = [
   {reactants: ['crude_oil', 'lava'], product: 'fire'},
   {reactants: ['crude_oil', 'fire'], product: 'fire', forced: 5, chance: 0.3},
   {reactants: ['water', 'fire'], product: 'air'},
-  {reactants: ['acid', '*:not(wall,air)'], product: 'air', chance: 50}
+  {reactants: ['acid', '*:not(wall,air)'], product: 'air', chance: 50},
+  {reactants: ['gunpowder', 'fire'], product: 'fire', forced: 0.1, chance: 50}
 ];
 
 function compileReactants() {
@@ -333,9 +340,12 @@ window.onload = function() {
   canvas.style.height = '100%';
 
   overlayCanvas = document.createElement('canvas');
-  overlayCanvas.width = window.innerWidth;
-  overlayCanvas.height = window.innerHeight;
+  overlayCanvas.width = sizeWidth * scaleFactor;
+  overlayCanvas.height = sizeHeight * scaleFactor;
   overlayCanvas.id = 'overlay';
+
+  overlayCanvas.style.width = '100%';
+  overlayCanvas.style.height = '100%';
   
   document.body.prepend(overlayCanvas);
   document.body.prepend(canvas);
@@ -347,7 +357,6 @@ window.onload = function() {
   pixels = imgData.data;
   
   fpsEl = document.getElementById('fps');
-  dbgEl = document.getElementById('dbg');
 
   materialSelectEl = document.getElementById('materialSelect');
   scaleSelectEl = document.getElementById('scaleSelect');
@@ -366,8 +375,6 @@ window.onload = function() {
   initScaleSelect();
   initMaterialSelect();
   initCursorSelect();
-  
-  dbgEl.innerText = `${sizeWidth}x${sizeHeight} - ${sizeWidth * sizeHeight}`;
 
   initTiles();
   compileReactants();
