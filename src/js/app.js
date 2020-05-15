@@ -134,11 +134,12 @@ let oldAgeLookup = {
 let reactions = [
   {reactants: ['water', 'lava'], product: 'stone'},
   {reactants: ['sand', 'lava'], product: 'glass'},
-  {reactants: ['crude_oil', 'lava'], product: 'fire'},
+  {reactants: ['crude_oil', 'lava'], product: 'fire', forced: 5, chance: 0.3},
   {reactants: ['crude_oil', 'fire'], product: 'fire', forced: 5, chance: 0.3},
   {reactants: ['water', 'fire'], product: 'air'},
   {reactants: ['acid', '*:not(wall,air)'], product: 'air', chance: 50},
-  {reactants: ['gunpowder', 'fire'], product: 'fire', forced: 0.1, chance: 50}
+  {reactants: ['gunpowder', 'fire'], product: 'fire', forced: 0.1, chance: 50},
+  {reactants: ['gunpowder', 'lava'], product: 'fire', forced: 0.1, chance: 50}
 ];
 
 function compileReactants() {
