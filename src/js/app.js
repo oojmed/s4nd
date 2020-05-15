@@ -93,6 +93,13 @@ let liquidLookup = {
   'acid': true
 };
 
+let viscosityLookup = {
+  'water': 2,
+  'acid': 3,
+  'crude_oil': 3,
+  'lava': 5
+};
+
 let floatLookup = {
   'fire': true
 };
@@ -554,7 +561,7 @@ export function update() {
                 }
               }
               
-              if (!belowLeftAvaliable && !belowLeftAvaliable && liquidLookup[t.material] && Math.random() > 0.1) {
+              if (liquidLookup[t.material] && !belowLeftAvaliable && !belowRightAvaliable && Math.random() > (viscosityLookup[t.material] / 100)) {
                 let sameLeftAvaliable = densityLookup[sameLeftTile.material] < densityLookup[t.material];
                 let sameRightAvaliable = densityLookup[sameRightTile.material] < densityLookup[t.material];
                 

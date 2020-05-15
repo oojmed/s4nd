@@ -6,6 +6,7 @@
 - Added headers to settings
 - Added looking around the world
 - World now larger than viewport
+- Added new viscosity system
 
 
 ## v1.0.0
