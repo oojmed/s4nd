@@ -15,6 +15,7 @@
 - Added outline to show where tiles will be drawn
 - Removed outdated debug (dbg) text on the second line of the top left info text
 - Added gunpowder material
+- Added dirt material
 
 
 ## v0.5.3

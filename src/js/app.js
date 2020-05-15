@@ -31,7 +31,7 @@ let mouseDown = false;
 
 let faucetOn = false;
 
-let materials = ['water', 'crude_oil', 'lava', 'acid', 'sand', 'gunpowder', 'glass', 'stone', 'wall', 'air', 'fire'];
+let materials = ['water', 'crude_oil', 'lava', 'acid', 'sand', 'dirt', 'gunpowder', 'glass', 'stone', 'wall', 'air', 'fire'];
 let mouseSelected = 'water';
 let oldMouseSelected = undefined;
 
@@ -46,36 +46,30 @@ let materialColors = {
   'air': (t) => ({ r: 0, g: 0, b: 20 / (t.faucet === undefined ? 0 : 0), a: 20 - (0 / t.age) }), // you may be wondering why age is being used here, and it's because if t.age is used in only one function (fire) then JIT breaks it in browsers (at least in chromium)
   'fire': (t) => ({ r: 255, g: 65 + (t.rand * 20), b: 25 + (t.rand * 30), a: (betterSinRadians(t.age * 22) + 0.3) * 255 }),
   'acid': (t) => ({ r: 80 - (t.rand * 70), g: 225, b: 80 - (t.rand * 65), a: 200}),
-  'gunpowder': (t) => ({r: 50 - (t.rand * 40), g: 50 - (t.rand * 40), b: 50 - (t.rand * 40), a: 255})
+  'gunpowder': (t) => ({r: 50 - (t.rand * 40), g: 50 - (t.rand * 40), b: 50 - (t.rand * 40), a: 255}),
+  'dirt': (t) => ({r: 200 - (t.rand * 60), g: 100 - (t.rand * 40), b: 10, a: 255})
 };
 
 let densityLookup = {
-  'sand': 500,
-  'glass': 800,
-  'wall': 9999,
-  'stone': 700,
-  'gunpowder': 300,
-  
   'air': 5,
-  'fire': 200,
-  
-  'water': 50,
+
+  'acid': 20,
   'crude_oil': 30,
+  'water': 50,
   'lava': 100,
-  'acid': 20
+
+  'gunpowder': 300,
+  'sand': 500,
+  'dirt': 600,
+  'stone': 700,
+  'glass': 800,
+
+  'wall': 9999,
+
+  'fire': 200
 };
 
 let staticLookup = {
-  'water': false,
-  'crude_oil': false,
-  'lava': false,
-  'acid': false,
-  'gunpowder': false,
-
-  'sand': false,
-  'stone': false,
-  'glass': false,
-  
   'fire': true,
   'air': true,
   'wall': true
@@ -85,49 +79,14 @@ let liquidLookup = {
   'water': true,
   'lava': true,
   'crude_oil': true,
-  'acid': true,
-
-  'gunpowder': false,
-  'sand': false,
-  'stone': false,
-  'wall': false,
-  'glass': false,
-  
-  'fire': false,
-  'air': false,
+  'acid': true
 };
 
 let floatLookup = {
-  'water': false,
-  'crude_oil': false,
-  'lava': false,
-  'acid': false,
-  'gunpowder': false,
-
-  'sand': false,
-  'stone': false,
-  'glass': false,
-  
-  'air': false,
-  'wall': false,
-
   'fire': true
 };
 
 let oldAgeLookup = {
-  'water': false,
-  'crude_oil': false,
-  'lava': false,
-  'acid': false,
-
-  'gunpowder': false,
-  'sand': false,
-  'stone': false,
-  'glass': false,
-  
-  'air': false,
-  'wall': false,
-
   'fire': 0.15
 };
 
@@ -234,8 +193,8 @@ function resizeCanvas() {
   canvas.width = sizeWidth;
   canvas.height = sizeHeight;
 
-  overlayCanvas.width = window.innerWidth;
-  overlayCanvas.height = window.innerHeight;
+  overlayCanvas.width = sizeWidth * scaleFactor;
+  overlayCanvas.height = sizeHeight * scaleFactor;
 
   imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
   pixels = imgData.data;
