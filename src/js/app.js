@@ -47,7 +47,7 @@ let materialColors = {
   'fire': (t) => ({ r: 255, g: 65 + (t.rand * 20), b: 25 + (t.rand * 30), a: (betterSinRadians(t.age * 22) + 0.3) * 255 }),
   'acid': (t) => ({ r: 80 - (t.rand * 70), g: 225, b: 80 - (t.rand * 65), a: 200}),
   'gunpowder': (t) => ({r: 50 - (t.rand * 40), g: 50 - (t.rand * 40), b: 50 - (t.rand * 40), a: 255}),
-  'dirt': (t) => ({r: 200 - (t.rand * 60), g: 100 - (t.rand * 40), b: 10, a: 255})
+  'dirt': (t) => ({r: 180 - (t.rand * 60), g: 80 - (t.rand * 40), b: 10, a: 255})
 };
 
 let densityLookup = {
