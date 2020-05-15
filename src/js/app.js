@@ -14,8 +14,9 @@ let tiles = [];
 
 let scaleFactor = 12;
 
-let sizeWidth = Math.floor(window.innerWidth / scaleFactor);
-let sizeHeight = Math.floor(window.innerHeight / scaleFactor);
+let viewportWidth = Math.floor(window.innerWidth / scaleFactor);
+let viewportHeight = Math.floor(window.innerHeight / scaleFactor);
+let viewportSimRadius = 10;
 
 let imgData;
 let pixels;
@@ -31,9 +32,15 @@ let mouseDown = false;
 
 let faucetOn = false;
 
-let materials = ['water', 'crude_oil', 'lava', 'acid', 'sand', 'dirt', 'gunpowder', 'glass', 'stone', 'wall', 'air', 'fire'];
+let materials = ['water', 'crude_oil', 'lava', 'acid', 'sand', 'dirt', 'grass', 'gunpowder', 'glass', 'stone', 'wall', 'air', 'fire'];
 let mouseSelected = 'water';
 let oldMouseSelected = undefined;
+
+let cameraX = 0;
+let cameraY = 0;
+
+let worldWidth = 200;
+let worldHeight = 200;
 
 let materialColors = {
   'sand': (t) => ({ r: 250 - (t.rand * 40), g: 201 - (t.rand * 30), b: 55, a: 255 }),
@@ -47,7 +54,8 @@ let materialColors = {
   'fire': (t) => ({ r: 255, g: 65 + (t.rand * 20), b: 25 + (t.rand * 30), a: (betterSinRadians(t.age * 22) + 0.3) * 255 }),
   'acid': (t) => ({ r: 80 - (t.rand * 70), g: 225, b: 80 - (t.rand * 65), a: 200}),
   'gunpowder': (t) => ({r: 50 - (t.rand * 40), g: 50 - (t.rand * 40), b: 50 - (t.rand * 40), a: 255}),
-  'dirt': (t) => ({r: 180 - (t.rand * 60), g: 80 - (t.rand * 40), b: 10, a: 255})
+  'dirt': (t) => ({r: 180 - (t.rand * 60), g: 80 - (t.rand * 40), b: 10, a: 255}),
+  'grass': (t) => ({r: 40, g: 250 - (t.rand * 60), b: 50, a: 255})
 };
 
 let densityLookup = {
@@ -60,6 +68,7 @@ let densityLookup = {
 
   'gunpowder': 300,
   'sand': 500,
+  'grass': 599,
   'dirt': 600,
   'stone': 700,
   'glass': 800,
@@ -98,7 +107,8 @@ let reactions = [
   {reactants: ['water', 'fire'], product: 'air'},
   {reactants: ['acid', '*:not(wall,air)'], product: 'air', chance: 50},
   {reactants: ['gunpowder', 'fire'], product: 'fire', forced: 0.1, chance: 50},
-  {reactants: ['gunpowder', 'lava'], product: 'fire', forced: 0.1, chance: 50}
+  {reactants: ['gunpowder', 'lava'], product: 'fire', forced: 0.1, chance: 50},
+  {reactants: ['dirt', 'air'], product: 'grass', chance: 0.005, reactantStay: 1}
 ];
 
 function compileReactants() {
@@ -121,7 +131,7 @@ function compileReactants() {
 }
 
 function initTiles() {
-  let newTiles = Array.from(Array(sizeWidth), () => Array.apply(undefined, Array(sizeHeight)).map((x) => Object.assign({}, baseTile)));
+  let newTiles = Array.from(Array(worldWidth), () => Array.apply(undefined, Array(worldHeight)).map((x) => Object.assign({}, baseTile)));
   
   newTiles = newTiles.map((p, x) => p.map((t, y) => {
     t.rand = Math.random();
@@ -133,14 +143,14 @@ function initTiles() {
   }));
   
   // border
-  for (let x = 0; x < sizeWidth; x++) {
+  for (let x = 0; x < worldWidth; x++) {
     newTiles[x][0].material = 'wall';
-    newTiles[x][sizeHeight - 1].material = 'wall';
+    newTiles[x][worldHeight - 1].material = 'wall';
   }
   
-  for (let y = 0; y < sizeHeight; y++) {
+  for (let y = 0; y < worldHeight; y++) {
     newTiles[0][y].material = 'wall';
-    newTiles[sizeWidth - 1][y].material = 'wall';
+    newTiles[worldWidth - 1][y].material = 'wall';
   }
 
   tiles = newTiles;
@@ -187,19 +197,19 @@ function initScaleSelect() {
 function resizeCanvas() {
   scaleFactor = parseFloat(scaleSelectEl.value);
 
-  sizeWidth = Math.floor(window.innerWidth / scaleFactor);
-  sizeHeight = Math.floor(window.innerHeight / scaleFactor);
+  viewportWidth = Math.floor(window.innerWidth / scaleFactor);
+  viewportHeight = Math.floor(window.innerHeight / scaleFactor);
 
-  canvas.width = sizeWidth;
-  canvas.height = sizeHeight;
+  canvas.width = viewportWidth;
+  canvas.height = viewportHeight;
 
-  overlayCanvas.width = sizeWidth * scaleFactor;
-  overlayCanvas.height = sizeHeight * scaleFactor;
+  overlayCanvas.width = viewportWidth * scaleFactor;
+  overlayCanvas.height = viewportHeight * scaleFactor;
 
   imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
   pixels = imgData.data;
 
-  initTiles();
+  // initTiles();
 }
 
 function mouseDownHandler(e) {
@@ -259,8 +269,8 @@ function mouseUpHandler(e) {
 }
 
 function mouseDraw(pos = mousePos) {
-  let actualPosX = Math.floor(pos.x / scaleFactor);
-  let actualPosY = Math.floor(pos.y / scaleFactor);
+  let actualPosX = cameraX + Math.floor(pos.x / scaleFactor);
+  let actualPosY = cameraY + Math.floor(pos.y / scaleFactor);
   
   tiles[actualPosX][actualPosY].age = 0;
 
@@ -292,16 +302,16 @@ window.onload = function() {
   let startTime = performance.now();
 
   canvas = document.createElement('canvas');
-  canvas.width = sizeWidth;
-  canvas.height = sizeHeight;
+  canvas.width = viewportWidth;
+  canvas.height = viewportHeight;
   canvas.id = 'sandbox';
 
   canvas.style.width = '100%';
   canvas.style.height = '100%';
 
   overlayCanvas = document.createElement('canvas');
-  overlayCanvas.width = sizeWidth * scaleFactor;
-  overlayCanvas.height = sizeHeight * scaleFactor;
+  overlayCanvas.width = viewportWidth * scaleFactor;
+  overlayCanvas.height = viewportHeight * scaleFactor;
   overlayCanvas.id = 'overlay';
 
   overlayCanvas.style.width = '100%';
@@ -369,6 +379,30 @@ window.onload = function() {
         PerfOverlay.on();
       }
     }
+
+    if (e.key === 'w') {
+      if (cameraY > 0) {
+        cameraY--;
+      }
+    }
+
+    if (e.key === 's') {
+      if (cameraY + viewportHeight < worldHeight) {
+        cameraY++;
+      }
+    }
+
+    if (e.key === 'a') {
+      if (cameraX > 0) {
+        cameraX--;
+      }
+    }
+
+    if (e.key === 'd') {
+      if (cameraX + viewportWidth < worldWidth) {
+        cameraX++;
+      }
+    }
   };
 
   PerfOverlay.init();
@@ -424,8 +458,11 @@ export function update() {
     recentAge = 0;
   }
 
-  for (var ticksDone = 1; ticksDone < recentAge / factor; ticksDone++) for (let x = 0; x < sizeWidth; x++) {
-    for (let y = 0; y < sizeHeight; y++) {
+  for (var ticksDone = 1; ticksDone < recentAge / factor; ticksDone++) for (let x = cameraX - viewportSimRadius; x < cameraX + viewportWidth + viewportSimRadius; x++) {
+    for (let y = cameraY - viewportSimRadius; y < cameraY + viewportHeight + viewportSimRadius; y++) {
+      //if (x < 0 || y < 0) continue;
+      if ((x < 0 || x >= worldWidth) || (y < 0 || y >= worldHeight)) continue;
+
       // let realDeltaTime = deltaTime / Math.floor(recentAge / factor);
 
       let t = tiles[x][y];
@@ -435,7 +472,7 @@ export function update() {
       let aboveTile = tiles[x][y - 1] || {material: 'nonExistant', typeUpdated: false, reactionUpdated: false};
       let belowTile = tiles[x][y + 1] || {material: 'nonExistant', typeUpdated: false, reactionUpdated: false};
       let sameLeftTile = x <= 0 ? {material: 'nonExistant', typeUpdated: false, reactionUpdated: false} : tiles[x - 1][y];
-      let sameRightTile = x >= sizeWidth - 1 ? {material: 'nonExistant', typeUpdated: false, reactionUpdated: false} : tiles[x + 1][y];
+      let sameRightTile = x >= worldWidth - 1 ? {material: 'nonExistant', typeUpdated: false, reactionUpdated: false} : tiles[x + 1][y];
       
       let adjacentNeighbours = [aboveTile, belowTile, sameLeftTile, sameRightTile];
       
@@ -482,14 +519,14 @@ export function update() {
 
       if (adjSameCount !== 4) {
         if (!staticLookup[t.material]) {
-          let bottom = y === sizeHeight - 1;
+          let bottom = y === worldHeight - 1;
           
           if (!bottom && !t.typeUpdated) {
             if (densityLookup[belowTile.material] < densityLookup[t.material]) {
               moveTile(t, belowTile);
             } else {
               let belowLeftTile = x <= 0 ? {material: 'nonExistant', typeUpdated: false, reactionUpdated: false} : tiles[x - 1][y + 1];
-              let belowRightTile = x >= sizeWidth - 1 ? {material: 'nonExistant', typeUpdated: false, reactionUpdated: false} : tiles[x + 1][y + 1];
+              let belowRightTile = x >= worldWidth - 1 ? {material: 'nonExistant', typeUpdated: false, reactionUpdated: false} : tiles[x + 1][y + 1];
               
               let belowLeftAvaliable = densityLookup[belowLeftTile.material] < densityLookup[t.material];
               let belowRightAvaliable = densityLookup[belowRightTile.material] < densityLookup[t.material];
@@ -545,14 +582,20 @@ export function update() {
 
               let product = r.product.slice();
               
-              t.material = product;
-              neighbouringTile.material = product;
+              let thisIndex = r.reactants.indexOf(t.material);
 
-              t.reactionUpdated = true;
-              neighbouringTile.reactionUpdated = true;
-
-              t.age = 0;
-              neighbouringTile.age = 0;
+              if (r.reactantStay !== thisIndex) {
+                t.material = product;
+                t.reactionUpdated = true;
+                t.age = 0;
+              }
+              
+              if (r.reactantStay !== (thisIndex === 0 ? 1 : 0)) {
+                neighbouringTile.material = product;
+                neighbouringTile.reactionUpdated = true;
+                neighbouringTile.age = 0;
+              }
+              
 
               if (r.forced !== undefined) {
                 t.forced = [r.product.slice(), Number(r.forced)];
@@ -584,12 +627,14 @@ export function update() {
         c = materialColors[t.material](t);
       }
 
-      let off = (x + (y * sizeWidth)) * 4;
+      if (ticksDone === Math.floor(recentAge / factor) && (x >= cameraX && x < cameraX + viewportWidth) && (y >= cameraY && y < cameraY + viewportHeight)) {
+        let off = ((x - cameraX) + ((y - cameraY) * viewportWidth)) * 4;
 
-      pixels[off] = c.r;
-      pixels[off + 1] = c.g;
-      pixels[off + 2] = c.b;
-      pixels[off + 3] = c.a;
+        pixels[off] = c.r;
+        pixels[off + 1] = c.g;
+        pixels[off + 2] = c.b;
+        pixels[off + 3] = c.a;
+      }
     }
   }
 
@@ -606,8 +651,8 @@ export function update() {
 
   ctx.putImageData(imgData, 0, 0);
 
-  for (let x = 0; x < sizeWidth; x++) {
-    for (let y = 0; y < sizeHeight; y++) {
+  for (let x = 0; x < worldWidth; x++) {
+    for (let y = 0; y < worldHeight; y++) {
       tiles[x][y].typeUpdated = false;
       tiles[x][y].reactionUpdated = false;
     }

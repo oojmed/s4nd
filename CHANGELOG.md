@@ -1,5 +1,13 @@
 # s4ndb0x changelog
 
+## v2.0.0
+- Added grass
+- Dirt will now auto change into grass on contact with air (slowly)
+- Added headers to settings
+- Added looking around the world
+- World now larger than viewport
+
+
 ## v1.0.0
 - Material names in dropdown now has proper casing and spaces
 - Renamed oil to crude oil
