@@ -1,14 +1,17 @@
 import { frameTimeArr } from './exportedVars';
 
 export let canvas, ctx;
+export let enabled = false;
 
-let graphWidth = window.innerWidth - 200;
+let graphWidth = window.innerWidth - 100;
 let graphHeight = 150;
+
+let titleSpace = 30;
 
 export function init() {
   canvas = document.createElement('canvas');
   canvas.width = graphWidth;
-  canvas.height = graphHeight;
+  canvas.height = graphHeight + titleSpace;
   canvas.id = 'perfOverlay';
   
   document.body.prepend(canvas);
@@ -31,18 +34,22 @@ function getRelativePos(value, maxValue) {
 }
 
 export function update() {
+  ctx.clearRect(0, 0, graphWidth + titleSpace, graphHeight + titleSpace);
+
+  if (!enabled) return;
+
   ctx.strokeStyle = 'white';
   ctx.lineWidth = 10;
 
-  ctx.clearRect(0, 0, graphWidth, graphHeight);
-
   ctx.beginPath();
 
-  ctx.moveTo(graphWidth, graphHeight);
-  ctx.lineTo(0, graphHeight);
-  ctx.lineTo(0, 0);
+  ctx.moveTo(graphWidth, graphHeight + titleSpace);
+  ctx.lineTo(0, graphHeight + titleSpace);
+  ctx.lineTo(0, titleSpace);
 
   ctx.stroke();
+
+  renderText(graphWidth / 2, titleSpace / 2, 16, 'white', 'ticks per frame', 'center');
 
   ctx.strokeStyle = 'lightgreen';
   ctx.lineWidth = 2;
@@ -58,25 +65,25 @@ export function update() {
   frameTimeArr.forEach((x, i) => {
     let relValue = getRelativePos(x, maxValue);
 
-    if (x > 5) {
+    if (x > 1 || lastValue > 1) {
       ctx.stroke();
 
       ctx.beginPath();
-      ctx.moveTo(6 + ((i - 1) * 2), graphHeight - lastRelValue);
+      ctx.moveTo(6 + ((i - 1) * 5), titleSpace + graphHeight - lastRelValue - 6);
 
       ctx.strokeStyle = 'red';
       
-      ctx.lineTo(6 + (i * 2), graphHeight - relValue);
+      ctx.lineTo(6 + (i * 5), titleSpace + graphHeight - relValue - 6);
 
       ctx.stroke();
 
-      renderText(6 + (i * 2) + 1, graphHeight - relValue - 10, 16, 'red', `${Math.floor(x)}ms`, 'left');
+      // renderText(6 + (i * 2) + 1, graphHeight - relValue - 10, 16, 'red', `${Math.floor(x)}ms`, 'left');
 
       ctx.beginPath();
 
       ctx.strokeStyle = 'lightgreen';
     } else {
-      ctx.lineTo(6 + (i * 2), graphHeight - relValue);
+      ctx.lineTo(6 + (i * 5), titleSpace + graphHeight - relValue - 6);
     }
 
     lastValue = x;
@@ -85,5 +92,17 @@ export function update() {
 
   ctx.stroke();
 
-  requestAnimationFrame(update);
+  if (enabled) requestAnimationFrame(update);
+}
+
+export function on() {
+  enabled = true;
+
+  update();
+}
+
+export function off() {
+  enabled = false;
+
+  update();
 }

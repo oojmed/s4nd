@@ -18,10 +18,18 @@ html, body {
     image-rendering: pixelated;
     image-rendering: -moz-crisp-edges;
     image-rendering: crisp-edges;
+}
 
-    /*border: 5px solid rgb(50, 56, 56);
+#overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
 
-    background-color: #111111;*/
+    z-index: 1;
+
+    image-rendering: pixelated;
+    image-rendering: -moz-crisp-edges;
+    image-rendering: crisp-edges;
 }
 
 #perfOverlay {
@@ -36,19 +44,32 @@ html, body {
 }
 
 #info {
+    z-index: 999;
+
     position: absolute;
     top: 0;
     left: 0;
 
-    padding: 15px;
+    padding: 20px;
 
-    width: calc(100% - 30px);
+    width: calc(100% - 40px);
 
     font-size: 16px;
 
     opacity: 0.5;
 
     user-select: none;
+}
+
+#info div:first-child {
+    margin-right: 0;
+}
+
+#info > div {
+    margin-right: 5%;
+    float: right;
+
+    text-align: right;
 }
 
 select {
@@ -59,4 +80,11 @@ select {
 option {
     background-color: black;
     color: rgba(255, 255, 255, .95);
+}
+
+@media only screen and (max-width: 700px) {
+    #info > div {
+        clear: both;
+        margin-right: 0;
+    }
 }

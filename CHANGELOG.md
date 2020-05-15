@@ -1,5 +1,19 @@
 # s4ndb0x changelog
 
+## v1.0.0
+- Material names in dropdown now has proper casing and spaces
+- Renamed oil to crude oil
+- Slowed down rate of crude oil fire
+- Fixed incorrect delta time calculation
+- Upgraded reaction systems to be able to compile wildcards and syntax at load
+- Now using new tick based update system per frame
+- Added acid material
+- Added faucet checkbox which makes a tile which acts like wall, but constantly makes the chosen material spawn under it
+- Added erase (selects air) on right click
+- Auto resize when page size changes
+- Added dropdown that now allows choice of how big the drawing cursor is
+
+
 ## v0.5.3
 - Fixed that lava was not marked as a liquid
 
