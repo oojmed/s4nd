@@ -42,6 +42,8 @@ let cameraY = 0;
 let worldWidth = 200;
 let worldHeight = 200;
 
+let worldFullscreen = true;
+
 let materialColors = {
   'sand': (t) => ({ r: 250 - (t.rand * 40), g: 201 - (t.rand * 30), b: 55, a: 255 }),
   'water': (t) => ({ r: 60 - (t.rand * 40), g: 190 - (t.rand * 20), b: 230, a: 200 }),
@@ -131,6 +133,11 @@ function compileReactants() {
 }
 
 function initTiles() {
+  if (worldFullscreen) {
+    worldWidth = viewportWidth;
+    worldHeight = viewportHeight;
+  }
+
   let newTiles = Array.from(Array(worldWidth), () => Array.apply(undefined, Array(worldHeight)).map((x) => Object.assign({}, baseTile)));
   
   newTiles = newTiles.map((p, x) => p.map((t, y) => {
@@ -209,7 +216,7 @@ function resizeCanvas() {
   imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
   pixels = imgData.data;
 
-  // initTiles();
+  if (worldFullscreen) initTiles();
 }
 
 function mouseDownHandler(e) {
