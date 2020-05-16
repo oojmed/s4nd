@@ -13,6 +13,7 @@
 - Auto resize UI padding when scale factor changes
 - Removed reactions which were compiled
 - Simplified settings UI by removing some never used options
+- Can now pause simulation with space key
 
 
 ## v1.0.0
