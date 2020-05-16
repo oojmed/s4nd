@@ -56,7 +56,7 @@ html, body {
 
     font-size: 16px;
 
-    opacity: 0.5;
+    opacity: 0.6;
 
     user-select: none;
 }
@@ -69,7 +69,11 @@ html, body {
     margin-right: 5%;
     float: right;
 
+    padding: 10px;
+
     text-align: right;
+
+    background-color: rgba(10, 10, 10, 0.6);
 }
 
 select {
@@ -86,5 +90,9 @@ option {
     #info > div {
         clear: both;
         margin-right: 0;
+    }
+
+    #info div:first-child {
+        margin-bottom: 10px;
     }
 }

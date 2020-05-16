@@ -7,6 +7,8 @@
 - Added looking around the world
 - World now larger than viewport
 - Added new viscosity system
+- Redesigned settings UI
+- Fixed bug where tile updated values were only updated every frame, not every tick
 
 
 ## v1.0.0
