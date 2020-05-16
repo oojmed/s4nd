@@ -1,5 +1,9 @@
 # s4ndb0x changelog
 
+## v2.0.1
+- Moved version info to start of info text instead of after
+
+
 ## v2.0.0
 - Added grass
 - Dirt will now auto change into grass on contact with air (slowly)
