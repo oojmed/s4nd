@@ -9,6 +9,10 @@
 - Added new viscosity system
 - Redesigned settings UI
 - Fixed bug where tile updated values were only updated every frame, not every tick
+- Added hide UI shortcut on 'H' keypress
+- Auto resize UI padding when scale factor changes
+- Removed reactions which were compiled
+- Simplified settings UI by removing some never used options
 
 
 ## v1.0.0

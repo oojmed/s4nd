@@ -59,6 +59,8 @@ html, body {
     opacity: 0.6;
 
     user-select: none;
+
+    transition: 1s opacity;
 }
 
 #info div:first-child {

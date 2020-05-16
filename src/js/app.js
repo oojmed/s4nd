@@ -12,7 +12,7 @@ let useRequestAnim = false;
 
 let tiles = [];
 
-let scaleFactor = 12;
+let scaleFactor = 14;
 
 let viewportWidth = Math.floor(window.innerWidth / scaleFactor);
 let viewportHeight = Math.floor(window.innerHeight / scaleFactor);
@@ -21,7 +21,7 @@ let viewportSimRadius = 10;
 let imgData;
 let pixels;
 
-let fpsEl, materialSelectEl, faucetCheckboxEl, scaleSelectEl, cursorSelectEl, frameLockCheckboxEl;
+let infoEl, fpsEl, materialSelectEl, faucetCheckboxEl, scaleSelectEl, cursorSelectEl, frameLockCheckboxEl, worldFullscreenCheckboxEl;
 
 let baseTile = { material: 'air', typeUpdated: false, reactionUpdated: false, rand: 0, age: 0 };
 
@@ -32,8 +32,8 @@ let mouseDown = false;
 
 let faucetOn = false;
 
-let materials = ['water', 'crude_oil', 'lava', 'acid', 'sand', 'dirt', 'grass', 'gunpowder', 'glass', 'stone', 'wall', 'air', 'fire'];
-let mouseSelected = 'water';
+let materials = ['water', 'crude_oil', 'lava', 'acid', 'sand', 'dirt', 'wood', 'grass', 'gunpowder', 'glass', 'stone', 'wall', 'air', 'fire'];
+let mouseSelected = materials[0].slice();
 let oldMouseSelected = undefined;
 
 let cameraX = 0;
@@ -57,7 +57,8 @@ let materialColors = {
   'acid': (t) => ({ r: 80 - (t.rand * 70), g: 225, b: 80 - (t.rand * 65), a: 200}),
   'gunpowder': (t) => ({r: 50 - (t.rand * 40), g: 50 - (t.rand * 40), b: 50 - (t.rand * 40), a: 255}),
   'dirt': (t) => ({r: 180 - (t.rand * 60), g: 80 - (t.rand * 40), b: 10, a: 255}),
-  'grass': (t) => ({r: 40, g: 250 - (t.rand * 60), b: 50, a: 255})
+  'grass': (t) => ({r: 40, g: 250 - (t.rand * 60), b: 50, a: 255}),
+  'wood': (t) => ({r: 240 - (t.rand * 40), g: 120 - (t.rand * 20), b: 20, a: 255})
 };
 
 let densityLookup = {
@@ -75,6 +76,7 @@ let densityLookup = {
   'stone': 700,
   'glass': 800,
   
+  'wood': 9998,
   'wall': 9999,
   
   'fire': 200
@@ -83,7 +85,8 @@ let densityLookup = {
 let staticLookup = {
   'fire': true,
   'air': true,
-  'wall': true
+  'wall': true,
+  'wood': true
 };
 
 let liquidLookup = {
@@ -97,7 +100,7 @@ let viscosityLookup = {
   'water': 2,
   'acid': 3,
   'crude_oil': 3,
-  'lava': 5
+  'lava': 10
 };
 
 let floatLookup = {
@@ -111,16 +114,24 @@ let oldAgeLookup = {
 let reactions = [
   {reactants: ['water', 'lava'], product: 'stone'},
   {reactants: ['sand', 'lava'], product: 'glass'},
-  {reactants: ['crude_oil', 'lava'], product: 'fire', forced: 5, chance: 0.3},
+
   {reactants: ['crude_oil', 'fire'], product: 'fire', forced: 5, chance: 0.3},
+  {reactants: ['crude_oil', 'lava'], product: 'fire'},
+
   {reactants: ['water', 'fire'], product: 'air'},
+
   {reactants: ['acid', '*:not(wall,air)'], product: 'air', chance: 50},
+
   {reactants: ['gunpowder', 'fire'], product: 'fire', forced: 0.1, chance: 50},
-  {reactants: ['gunpowder', 'lava'], product: 'fire', forced: 0.1, chance: 50},
+  {reactants: ['gunpowder', 'lava'], product: 'fire'},
+
+  {reactants: ['wood', 'fire'], product: 'fire', forced: 1.5, chance: 0.4},
+
   {reactants: ['dirt', 'air'], product: 'grass', chance: 0.005, reactantStay: 1}
 ];
 
 function compileReactants() {
+  let i = 0;
   for (let reaction of reactions.slice()) {
     let starReactant = reaction.reactants.find((x) => x.search(/\*/) !== -1);
     
@@ -135,15 +146,19 @@ function compileReactants() {
       for (let matchingMaterial of matchingMaterials) {
         reactions.push({reactants: [otherReactant, matchingMaterial], product: reaction.product, chance: reaction.chance, forced: reaction.forced});
       }
+
+      reactions.splice(i, 1);
     }
+
+    i++;
   }
+
+  console.log(reactions);
 }
 
 function initTiles() {
-  if (worldFullscreen) {
-    worldWidth = viewportWidth;
-    worldHeight = viewportHeight;
-  }
+  worldWidth = viewportWidth;
+  worldHeight = viewportHeight;
   
   let newTiles = Array.from(Array(worldWidth), () => Array.apply(undefined, Array(worldHeight)).map((x) => Object.assign({}, baseTile)));
   
@@ -222,8 +237,11 @@ function resizeCanvas() {
   
   imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
   pixels = imgData.data;
-  
-  if (worldFullscreen) initTiles();
+
+  infoEl.style.padding = `${Math.floor(scaleFactor * 1.7)}px`;
+  infoEl.style.width = `calc(100% - ${Math.floor(scaleFactor * 1.7) * 2}px)`;
+
+  if (worldFullscreen || (viewportWidth > worldWidth || viewportHeight > worldHeight)) initTiles();
 }
 
 function mouseDownHandler(e) {
@@ -344,17 +362,23 @@ window.onload = function() {
   
   materialSelectEl = document.getElementById('materialSelect');
   scaleSelectEl = document.getElementById('scaleSelect');
-  frameLockCheckboxEl = document.getElementById('framelockCheckbox');
   faucetCheckboxEl = document.getElementById('faucetCheckbox');
   cursorSelectEl = document.getElementById('cursorSelect');
+  infoEl = document.getElementById('info');
   
+  /*frameLockCheckboxEl = document.getElementById('framelockCheckbox');
   frameLockCheckboxEl.onchange = function(e) {
     useRequestAnim = frameLockCheckboxEl.checked;
-  };
+  };*/
   
-  faucetCheckboxEl.onchange = function (e) {
+  faucetCheckboxEl.onchange = function(e) {
     faucetOn = faucetCheckboxEl.checked;
   };
+
+  /*worldFullscreenCheckboxEl = document.getElementById('worldFullscreenCheckbox');
+  worldFullscreenCheckboxEl.onchange = function(e) {
+    worldFullscreen = worldFullscreenCheckboxEl.checked;
+  };*/
   
   initScaleSelect();
   initMaterialSelect();
@@ -419,14 +443,11 @@ window.onload = function() {
     }
     
     if (e.key === ' ') {
-      if (!paused) {
-        originalTimeFactor = Number(timeFactor);
-        timeFactor = 0;
-      } else {
-        timeFactor = Number(originalTimeFactor);
-      }
-      
       paused = !paused;
+    }
+
+    if (e.key === 'h') {
+      infoEl.style.opacity = (infoEl.style.opacity || '0.6') === '0.6' ? 0 : 0.6;
     }
   };
   
@@ -496,7 +517,7 @@ export function update() {
         
         let t = tiles[x][y];
         
-        if (ticksDone === 1) t.age += deltaTime;
+        if (!paused && ticksDone === 1) t.age += deltaTime;
         
         let aboveTile = tiles[x][y - 1] || {material: 'nonExistant', typeUpdated: false, reactionUpdated: false};
         let belowTile = tiles[x][y + 1] || {material: 'nonExistant', typeUpdated: false, reactionUpdated: false};
@@ -532,7 +553,7 @@ export function update() {
         randIncrease = liquidLookup[t.material] ? ((Math.random() * 2 - 1) / 20) : randIncrease;
         randIncrease = t.material === 'fire' ? ((Math.random() * 2 - 1) / 5) : randIncrease;
         
-        t.rand += randIncrease;
+        if (!paused) t.rand += randIncrease;
         
         t.rand = t.rand > 1 ? 1 : t.rand;
         t.rand = t.rand < 0 ? 0 : t.rand;
@@ -546,7 +567,7 @@ export function update() {
           t.rand = orig;
         }
         
-        if (adjSameCount !== 4) {
+        if (!paused && adjSameCount !== 4) {
           if (!staticLookup[t.material]) {
             let bottom = y === worldHeight - 1;
             
@@ -643,7 +664,7 @@ export function update() {
           }
         }
         
-        if (t.forced !== undefined) {
+        if (!paused && t.forced !== undefined) {
           t.age = 0;
           t.material = t.forced[0];
           if (ticksDone === 1) t.forced[1] -= deltaTime;
@@ -656,7 +677,7 @@ export function update() {
           c = materialColors[t.material](t);
         }
         
-        if (ticksDone === Math.floor(recentAge / timeFactor) && (x >= cameraX && x < cameraX + viewportWidth) && (y >= cameraY && y < cameraY + viewportHeight)) {
+        if ((!paused || t.age === 0) && ticksDone === Math.floor(recentAge / timeFactor) && (x >= cameraX && x < cameraX + viewportWidth) && (y >= cameraY && y < cameraY + viewportHeight)) {
           let off = ((x - cameraX) + ((y - cameraY) * viewportWidth)) * 4;
           
           pixels[off] = c.r;
@@ -676,15 +697,6 @@ export function update() {
   }
   
   recentAge %= timeFactor;
-  ticksTotal += ticksDone - 1;
-  
-  if (performance.now() - lastSecond > 1000) {
-    let nowSec = performance.now()
-    lastSecond = nowSec;
-    
-    ticksPerSecond = ticksTotal;
-    ticksTotal = 0;
-  }
   
   ctx.putImageData(imgData, 0, 0);
   
@@ -694,6 +706,16 @@ export function update() {
     requestAnimationFrame(update);
   } else {
     setTimeout(update, 0);
+  }
+
+  ticksTotal += ticksDone - 1;
+
+  if (performance.now() - lastSecond > 1000) {
+    let nowSec = performance.now()
+    lastSecond = nowSec;
+    
+    ticksPerSecond = ticksTotal;
+    ticksTotal = 0;
   }
   
   let timeTaken = performance.now() - startTime;
