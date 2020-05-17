@@ -1,6 +1,6 @@
 html, body {
     background-color: #000000 !important;
-    color: rgba(255, 255, 255, .87);
+    color: rgba(255, 255, 255, .97);
     font-family: Roboto, sans-serif;
 
     overflow: hidden;
@@ -43,20 +43,25 @@ html, body {
     opacity: 0.5;
 }
 
+#iconCanvas {
+    display: none;
+}
+
 #info {
-    z-index: 999;
+    z-index: 9;
 
     position: absolute;
     top: 0;
     left: 0;
 
-    padding: 20px;
+    padding: 25.2px;
+    padding-left: 80.2px;
 
-    width: calc(100% - 40px);
+    width: calc(100% - 25.2px - 80.2px);
 
     font-size: 16px;
 
-    opacity: 0.6;
+    opacity: 0.7;
 
     user-select: none;
 
@@ -78,6 +83,81 @@ html, body {
     background-color: rgba(10, 10, 10, 0.6);
 }
 
+.materialIcon {
+    image-rendering: pixelated;
+    image-rendering: -moz-crisp-edges;
+    image-rendering: crisp-edges;
+
+    background-color: rgb(150, 150, 150);
+
+    vertical-align: middle;
+    margin-right: 7px;
+
+    padding: 3px;
+
+    border-radius: 50%;
+    border: rgb(200, 200, 200) 5px solid;
+}
+
+.materialOption {
+    display: inline-block;
+    margin: 1%;
+
+    width: 153px;
+
+    border: rgba(150, 150, 150, 0.2) 3px solid;
+    background-color: rgba(100, 100, 100, 0.4);
+    border-radius: 30px;
+
+    cursor: pointer;
+}
+
+.materialOption > span {
+    overflow: visible;
+
+    font-size: 18px;
+    text-align: center;
+
+    display: inline-block;
+
+    width: calc(100% - 42.5px - 7px - 20px);
+}
+
+#materialMenu {
+    opacity: 0;
+    user-select: none;
+    pointer-events: none;
+
+    transition: opacity .3s;
+
+    position: absolute;
+    z-index: 99;
+    
+    top: 110px;
+
+    left: 30px;
+
+    width: calc(100% - 60px);
+
+    max-height: 70%;
+    overflow-y: auto;
+}
+
+#materialMenu.show {
+    opacity: 0.95;
+    pointer-events: all;
+}
+
+#materialMenuOpener {
+    z-index: 999;
+
+    cursor: pointer;
+    opacity: 0.9;
+
+    position: absolute;
+    margin: 25.2px;
+}
+
 select {
     color: rgba(255, 255, 255, .95);
     background-color: transparent;
@@ -88,7 +168,7 @@ option {
     color: rgba(255, 255, 255, .95);
 }
 
-@media only screen and (max-width: 700px) {
+@media only screen and (max-width: 750px) {
     #info > div {
         clear: both;
         margin-right: 0;
@@ -96,5 +176,17 @@ option {
 
     #info div:first-child {
         margin-bottom: 10px;
+    }
+
+    #materialMenu {
+        top: 200px;
+    }
+
+    .materialOption {
+        width: 125px;
+    }
+
+    .materialOption > span {
+        font-size: 14px;
     }
 }

@@ -1,6 +1,6 @@
 {
-    "short_name": "genEvo",
-    "name": "genEvo",
+    "short_name": "s4ndb0x",
+    "name": "s4ndb0x",
 
     "icons": [
         {
@@ -21,7 +21,7 @@
     "theme_color": "#1f1f1f",
 
     "display": "standalone",
-    "orientation": "portrait",
+    "orientation": "landscape",
 
-    "description": "no"
+    "description": "A 'falling sand' type simulator web app."
 }

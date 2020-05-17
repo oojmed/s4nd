@@ -1,5 +1,17 @@
 # s4ndb0x changelog
 
+## v3.0.0
+- Thicker and whiter tile outline
+- Added new icon
+- Hide tile outline when hovering over UI elements
+- Added new material menu
+- Properly capitalised UI
+- Darkened grass shader
+- UI spacing adjustments
+- Added missing lava + wood reaction
+- Flammable materials + lava no longer use up lava
+
+
 ## v2.0.2
 - Made dirt and grass less dense than sand
 - Made grass populate grass faster

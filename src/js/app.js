@@ -1,6 +1,7 @@
 import * as PerfOverlay from './perfOverlay';
 import { addTime } from './exportedVars';
 import { betterSinAngle, betterSinRadians } from './sinTaylor';
+import { registerSW } from './pwa/register';
 
 export let canvas, ctx;
 export let fps = 0;
@@ -21,7 +22,7 @@ let viewportSimRadius = 10;
 let imgData;
 let pixels;
 
-let infoEl, fpsEl, materialSelectEl, faucetCheckboxEl, scaleSelectEl, cursorSelectEl, frameLockCheckboxEl, worldFullscreenCheckboxEl;
+let infoEl, fpsEl, faucetCheckboxEl, scaleSelectEl, cursorSelectEl, materialMenuOpenerEl, materialMenuEl, frameLockCheckboxEl, worldFullscreenCheckboxEl;
 
 let baseTile = { material: 'air', typeUpdated: false, reactionUpdated: false, rand: 0, age: 0 };
 
@@ -32,8 +33,8 @@ let mouseDown = false;
 
 let faucetOn = false;
 
-let materials = ['water', 'crude_oil', 'lava', 'acid', 'sand', 'dirt', 'wood', 'grass', 'gunpowder', 'glass', 'stone', 'wall', 'air', 'fire'];
-let mouseSelected = materials[0].slice();
+let materials = ['fire', 'air', 'acid', 'crude_oil', 'water', 'lava', 'gunpowder', 'grass', 'dirt', 'sand', 'stone', 'glass', 'wood', 'wall']; //['water', 'crude_oil', 'lava', 'acid', 'sand', 'dirt', 'wood', 'grass', 'gunpowder', 'glass', 'stone', 'wall', 'air', 'fire'];
+let mouseSelected = 'sand';
 let oldMouseSelected = undefined;
 
 let cameraX = 0;
@@ -42,10 +43,16 @@ let cameraY = 0;
 let worldWidth = 200;
 let worldHeight = 200;
 
+let iconCanvas, iconCtx, iconImgData, iconPixels;
+let iconTileFactor = 3.5;
+let iconTileSize = 9;
+let iconCanvasPixelSize = iconTileSize;
+let iconImgPixelSize = iconTileFactor * iconTileSize;
+
 let worldFullscreen = true;
 
 let materialColors = {
-  'sand': (t) => ({ r: 250 - (t.rand * 40), g: 201 - (t.rand * 30), b: 55, a: 255 }),
+  'sand': (t) => ({ r: 250 - (t.rand * 40), g: 200 - (t.rand * 30), b: 55, a: 255 }),
   'water': (t) => ({ r: 60 - (t.rand * 40), g: 190 - (t.rand * 20), b: 230, a: 200 }),
   'crude_oil': (t) => ({ r: 100 - (t.rand * 20), g: 100 - (t.rand * 20), b: 100 - (t.rand * 20), a: 200 }),
   'wall': (t) => ({ r: 120 - (t.rand * 45), g: 120 - (t.rand * 40), b: 120 - (t.rand * 35) + (t.faucet === undefined ? 0 : 150), a: 255 }),
@@ -57,7 +64,7 @@ let materialColors = {
   'acid': (t) => ({ r: 80 - (t.rand * 70), g: 225, b: 80 - (t.rand * 65), a: 200}),
   'gunpowder': (t) => ({r: 50 - (t.rand * 40), g: 50 - (t.rand * 40), b: 50 - (t.rand * 40), a: 255}),
   'dirt': (t) => ({r: 180 - (t.rand * 60), g: 80 - (t.rand * 40), b: 10, a: 255}),
-  'grass': (t) => ({r: 40, g: 250 - (t.rand * 60), b: 50, a: 255}),
+  'grass': (t) => ({r: 40, g: 230 - (t.rand * 60), b: 50, a: 255}),
   'wood': (t) => ({r: 240 - (t.rand * 40), g: 120 - (t.rand * 20), b: 20, a: 255})
 };
 
@@ -98,10 +105,10 @@ let liquidLookup = {
 };
 
 let viscosityLookup = {
-  'water': 2,
-  'acid': 3,
-  'crude_oil': 3,
-  'lava': 10
+  'water': 1,
+  'acid': 2,
+  'crude_oil': 2,
+  'lava': 5
 };
 
 let floatLookup = {
@@ -117,16 +124,17 @@ let reactions = [
   {reactants: ['sand', 'lava'], product: 'glass'},
 
   {reactants: ['crude_oil', 'fire'], product: 'fire', forced: 5, chance: 0.3},
-  {reactants: ['crude_oil', 'lava'], product: 'fire'},
+  {reactants: ['crude_oil', 'lava'], product: 'fire', reactantStay: 1},
 
   {reactants: ['water', 'fire'], product: 'air'},
 
   {reactants: ['acid', '*:not(wall,air)'], product: 'air', chance: 50},
 
   {reactants: ['gunpowder', 'fire'], product: 'fire', forced: 0.1, chance: 50},
-  {reactants: ['gunpowder', 'lava'], product: 'fire'},
+  {reactants: ['gunpowder', 'lava'], product: 'fire', reactantStay: 1},
 
   {reactants: ['wood', 'fire'], product: 'fire', forced: 1.5, chance: 0.4},
+  {reactants: ['wood', 'lava'], product: 'fire', reactantStay: 1},
 
   {reactants: ['dirt', 'air'], product: 'grass', chance: 0.008, reactantStay: 1}
 ];
@@ -155,6 +163,87 @@ function compileReactants() {
   }
 
   console.log(reactions);
+}
+
+function makeMatIcon(mat, el) {
+  let n = 5;
+  for (var i = 0; i < n; i++) {
+    for (var j = 1; j < n - i; j++) {
+      
+    }
+
+    for (var k = 1; k <= ( 2 *i + 1); k++) {
+      let c = materialColors[mat]({rand: Math.random(), age: 0.075});
+
+      let off = ((j + k - 2) + ((i + ((iconCanvasPixelSize - n) / 2)) * iconCanvasPixelSize)) * 4;
+      iconPixels[off] = c.r;
+      iconPixels[off + 1] = c.g;
+      iconPixels[off + 2] = c.b;
+      iconPixels[off + 3] = c.a;
+    }
+  }
+
+  let borderColor = materialColors[mat]({rand: 1.5, age: 0.075});
+  let backColor = materialColors[mat]({rand: 0.5, age: 0.075});
+
+  iconCtx.putImageData(iconImgData, 0, 0);
+  
+  el.className = 'materialIcon';
+  el.src = iconCanvas.toDataURL('image/png');
+
+  let backgroundChoice = backColor.r * 0.299 + backColor.g * 0.587 + backColor.b * 0.114 > 186;
+
+  el.style.backgroundColor = backgroundChoice ? 'rgb(20, 20, 20)' : 'rgb(250, 250, 250)';
+  el.style.borderColor = backgroundChoice ? 'rgb(100, 100, 100)' : 'rgb(200, 200, 200)';
+
+  if (el.parentNode) { el.parentNode.style.borderColor = `rgb(${borderColor.r}, ${borderColor.g}, ${borderColor.b})`; }
+  
+  el.style.width = `${iconImgPixelSize - 5}px`;
+  el.style.height = `${iconImgPixelSize - 5}px`;
+}
+
+function materialDisplayText(mat) {
+  let d = mat.toString().replace('_', ' ');
+  return d[0].toUpperCase() + d.substring(1);
+}
+
+function makeMatMenu() {
+  let parent = document.getElementById('materialMenu');
+
+  for (let mat of materials) {
+    let container = document.createElement('div');
+    container.className = 'materialOption';
+
+    let el = document.createElement('img');
+
+    container.appendChild(el);
+
+    let text = document.createElement('span');
+    text.innerText = materialDisplayText(mat);
+
+    container.appendChild(text);
+
+    container.onclick = function(e) {
+      let chosenMat = this.innerText.toLowerCase().replace(' ', '_');
+
+      mouseSelected = chosenMat;
+      makeMatIcon(mouseSelected, materialMenuOpenerEl);
+
+      materialMenuEl.className = '';
+    };
+
+    parent.appendChild(container);
+
+    makeMatIcon(mat, el);
+  }
+
+  makeMatIcon(mouseSelected, materialMenuOpenerEl);
+
+  materialMenuOpenerEl.onclick = toggleMaterialMenu;
+}
+
+function toggleMaterialMenu() {
+  materialMenuEl.className = materialMenuEl.className === 'show' ? '' : 'show';
 }
 
 function initTiles() {
@@ -192,20 +281,11 @@ function initDropdown(options, parent, toSelect) {
     el.setAttribute('value', option);
     
     if (option === toSelect) { el.setAttribute('selected', true); }
-    
-    let displayOption = option.toString().replace('_', ' ');
-    el.innerText = displayOption[0].toUpperCase() + displayOption.substring(1);
+
+    el.innerText = materialDisplayText(option);
     
     parent.appendChild(el);
   });
-}
-
-function initMaterialSelect() {
-  initDropdown(materials, materialSelectEl, mouseSelected);
-  
-  materialSelectEl.onchange = function(e) {
-    mouseSelected = materialSelectEl.value;
-  };
 }
 
 function initCursorSelect() {
@@ -239,15 +319,25 @@ function resizeCanvas() {
   imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
   pixels = imgData.data;
 
-  infoEl.style.padding = `${Math.floor(scaleFactor * 1.7)}px`;
-  infoEl.style.width = `calc(100% - ${Math.floor(scaleFactor * 1.7) * 2}px)`;
+  let aPadding = `${Math.floor(scaleFactor * 1.8)}px`;
+  let lPadding = `${Math.floor(scaleFactor * 1.8) + 55}px`;
+
+  infoEl.style.padding = aPadding;
+  infoEl.style.paddingLeft = lPadding;
+  infoEl.style.width = `calc(100% - ${aPadding} - ${lPadding})`;
+
+  materialMenuOpenerEl.style.margin = aPadding;
 
   if (worldFullscreen || (viewportWidth > worldWidth || viewportHeight > worldHeight)) initTiles();
 }
 
+function mouseTargetCheck(e) {
+  return e.target.localName === 'select' || e.target.localName === 'option' || e.target.localName === 'input' || e.target.className.includes('material') || e.path[1].className.includes('material');
+}
+
 function mouseDownHandler(e) {
-  if (e.target.localName === 'select' || e.target.localName === 'option' || e.target.localName === 'input') return;
-  
+  if (mouseTargetCheck(e)) return;
+
   let which = e.which || 1;
   
   if (which === 3) {
@@ -267,18 +357,21 @@ function mouseDownHandler(e) {
 function mouseMoveHandler(e) {
   mousePos = {x: e.clientX, y: e.clientY};
   
+  overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+
+  if (mouseTargetCheck(e)) return;
+
   let actualPosX = Math.floor(mousePos.x / scaleFactor);
   let actualPosY = Math.floor(mousePos.y / scaleFactor);
   
   let surrounding = Math.floor(mouseDrawSize / 2);
   let evenAdd = mouseDrawSize % 2 === 1 ? 0 : 1;
   
-  overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
-  
   let left = Math.floor(actualPosX - surrounding + evenAdd) * scaleFactor;
   let top = Math.floor(actualPosY - surrounding + evenAdd) * scaleFactor;
   
-  overlayCtx.lineWidth = 1;
+  overlayCtx.globalAlpha = 0.9;
+  overlayCtx.lineWidth = 2;
   overlayCtx.strokeStyle = 'white';
   
   let size = (surrounding * 2) - evenAdd + 1;
@@ -349,19 +442,38 @@ window.onload = function() {
   
   overlayCanvas.style.width = '100%';
   overlayCanvas.style.height = '100%';
+
+  iconCanvas = document.createElement('canvas');
+  iconCanvas.width = iconCanvasPixelSize;
+  iconCanvas.height = iconCanvasPixelSize;
+  iconCanvas.id = 'iconCanvas';
   
+  document.body.prepend(iconCanvas);
   document.body.prepend(overlayCanvas);
   document.body.prepend(canvas);
   
   ctx = canvas.getContext('2d');
   overlayCtx = overlayCanvas.getContext('2d');
+  iconCtx = iconCanvas.getContext('2d');
   
   imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
   pixels = imgData.data;
+
+  iconImgData = iconCtx.getImageData(0, 0, iconCanvasPixelSize, iconCanvasPixelSize);
+  iconPixels = iconImgData.data;
+
+  materialMenuOpenerEl = document.getElementById('materialMenuOpener');
+  materialMenuEl = document.getElementById('materialMenu');
+
+  initTiles();
+  compileReactants();
+  
+  update();
+
+  makeMatMenu();
   
   fpsEl = document.getElementById('fps');
   
-  materialSelectEl = document.getElementById('materialSelect');
   scaleSelectEl = document.getElementById('scaleSelect');
   faucetCheckboxEl = document.getElementById('faucetCheckbox');
   cursorSelectEl = document.getElementById('cursorSelect');
@@ -382,16 +494,10 @@ window.onload = function() {
   };*/
   
   initScaleSelect();
-  initMaterialSelect();
   initCursorSelect();
-  
-  initTiles();
-  compileReactants();
-  
+
   let loadingTime = performance.now() - startTime;
   console.log(loadingTime);
-  
-  update();
   
   document.onmousedown = function(e) { mouseDownHandler(e); };
   document.onmousemove = function(e) { mouseMoveHandler(e); };
@@ -401,10 +507,10 @@ window.onload = function() {
   document.ontouchmove = function(e) { mouseMoveHandler(e.touches[0]); };
   document.ontouchend = function(e) { mouseUpHandler(e.touches[0]); };
   
-  document.oncontextmenu = function(e) {
+  /*document.oncontextmenu = function(e) {
     e.preventDefault();
     return false;
-  }
+  }*/
   
   window.onresize = function() {
     resizeCanvas();
@@ -450,9 +556,15 @@ window.onload = function() {
     if (e.key === 'h') {
       infoEl.style.opacity = (infoEl.style.opacity || '0.6') === '0.6' ? 0 : 0.6;
     }
+
+    if (e.key === 'm') {
+      toggleMaterialMenu();
+    }
   };
   
   PerfOverlay.init();
+
+  registerSW();
 };
 
 let paused = false;
@@ -732,6 +844,6 @@ export function update() {
     
     lastCalledTime = performance.now();
     
-    fpsEl.innerText = `${Math.floor(timeTaken)}ms - ${ticksDone - 1} ticks - ${ticksPerSecond} TPS - ${fps}`;
+    fpsEl.innerText = `${Math.floor(timeTaken)}ms - ${ticksDone - 1} ticks - ${ticksPerSecond} TPS - ${fps} fps`;
   }
 }
