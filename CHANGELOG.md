@@ -1,5 +1,9 @@
 # s4ndb0x changelog
 
+## v3.1.1
+- Fixed Firefox bug where no mouse events would function
+
+
 ## v3.1.0
 - Changed styling of material picker image background to be consistently dark
 - Refixed right click making the browser context menu appear

@@ -329,7 +329,9 @@ function resizeCanvas() {
 }
 
 function mouseTargetCheck(e) {
-  return e.target.localName === 'select' || e.target.localName === 'option' || e.target.localName === 'input' || e.target.className.includes('material') || e.path[1].className.includes('material');
+  let path = event.path || (event.composedPath && event.composedPath());
+
+  return e.target.localName === 'select' || e.target.localName === 'option' || e.target.localName === 'input' || e.target.className.includes('material') || path[1].className.includes('material');
 }
 
 function mouseDownHandler(e) {
