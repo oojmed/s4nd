@@ -136,7 +136,10 @@ let reactions = [
   {reactants: ['wood', 'fire'], product: 'fire', forced: 1.5, chance: 0.4},
   {reactants: ['wood', 'lava'], product: 'fire', reactantStay: 1},
 
-  {reactants: ['dirt', 'air'], product: 'grass', chance: 0.008, reactantStay: 1}
+  {reactants: ['dirt', 'air'], product: 'grass', chance: 0.008, reactantStay: 1},
+
+  {reactants: ['grass', 'fire'], product: 'fire', forced: 0.5, chance: 10},
+  {reactants: ['grass', 'lava'], product: 'fire', reactantStay: 1},
 ];
 
 function compileReactants() {
@@ -201,6 +204,11 @@ function materialDisplayText(mat) {
   return d[0].toUpperCase() + d.substring(1);
 }
 
+function resizeMatOpener() {
+  materialMenuOpenerEl.style.width = '40px';
+  materialMenuOpenerEl.style.height = '40px';
+}
+
 function makeMatMenu() {
   let parent = document.getElementById('materialMenu');
 
@@ -221,7 +229,9 @@ function makeMatMenu() {
       let chosenMat = this.innerText.toLowerCase().replace(' ', '_');
 
       mouseSelected = chosenMat;
+
       makeMatIcon(mouseSelected, materialMenuOpenerEl);
+      resizeMatOpener();
 
       materialMenuEl.className = '';
     };
@@ -232,9 +242,7 @@ function makeMatMenu() {
   }
 
   makeMatIcon(mouseSelected, materialMenuOpenerEl);
-
-  materialMenuOpenerEl.style.width = '40px';
-  materialMenuOpenerEl.style.height = '40px';
+  resizeMatOpener();
 
   materialMenuOpenerEl.onclick = toggleMaterialMenu;
 }

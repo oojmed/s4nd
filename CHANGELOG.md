@@ -1,5 +1,9 @@
 # s4ndb0x changelog
 
+## v3.2.0
+- Added grass + fire (and lava) reactions
+- Stopped material picker opener from shrinking after a material has been chosen
+
 ## v3.1.1
 - Fixed Firefox bug where no mouse events would function
 
