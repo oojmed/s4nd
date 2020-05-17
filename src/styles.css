@@ -55,9 +55,9 @@ html, body {
     left: 0;
 
     padding: 25.2px;
-    padding-left: 80.2px;
+    padding-left: 95.2px;
 
-    width: calc(100% - 25.2px - 80.2px);
+    width: calc(100% - 25.2px - 95.2px);
 
     font-size: 16px;
 
@@ -66,6 +66,14 @@ html, body {
     user-select: none;
 
     transition: 1s opacity;
+}
+
+#detailedInfo {
+    display: none;
+}
+
+#detailedInfo.show {
+    display: inline-block;
 }
 
 #info div:first-child {
@@ -88,7 +96,10 @@ html, body {
     image-rendering: -moz-crisp-edges;
     image-rendering: crisp-edges;
 
-    background-color: rgb(150, 150, 150);
+    /*background-color: rgb(150, 150, 150);*/
+    /*border: rgb(200, 200, 200) 5px solid;*/
+    border: #3e3e3e 5px solid;
+    background-color: #1a1b1c;
 
     vertical-align: middle;
     margin-right: 7px;
@@ -96,7 +107,6 @@ html, body {
     padding: 3px;
 
     border-radius: 50%;
-    border: rgb(200, 200, 200) 5px solid;
 }
 
 .materialOption {
@@ -106,7 +116,7 @@ html, body {
     width: 153px;
 
     border: rgba(150, 150, 150, 0.2) 3px solid;
-    background-color: rgba(100, 100, 100, 0.4);
+    background-color: rgba(61, 64, 67, 0.4);
     border-radius: 30px;
 
     cursor: pointer;

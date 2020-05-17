@@ -1,5 +1,15 @@
 # s4ndb0x changelog
 
+## v3.1.0
+- Changed styling of material picker image background to be consistently dark
+- Refixed right click making the browser context menu appear
+- Adjusted colors of material picker options
+- Slightly reduced opacity of tile cursor outline
+- Optimised material icon production
+- Hide detailed top left info by default
+- Performance graph shortcut now also shows detailed (top left) info
+
+
 ## v3.0.0
 - Thicker and whiter tile outline
 - Added new icon

@@ -22,7 +22,7 @@ let viewportSimRadius = 10;
 let imgData;
 let pixels;
 
-let infoEl, fpsEl, faucetCheckboxEl, scaleSelectEl, cursorSelectEl, materialMenuOpenerEl, materialMenuEl, frameLockCheckboxEl, worldFullscreenCheckboxEl;
+let infoEl, fpsEl, faucetCheckboxEl, scaleSelectEl, cursorSelectEl, materialMenuOpenerEl, materialMenuEl, detailedInfoEl, frameLockCheckboxEl, worldFullscreenCheckboxEl;
 
 let baseTile = { material: 'air', typeUpdated: false, reactionUpdated: false, rand: 0, age: 0 };
 
@@ -44,7 +44,7 @@ let worldWidth = 200;
 let worldHeight = 200;
 
 let iconCanvas, iconCtx, iconImgData, iconPixels;
-let iconTileFactor = 3.5;
+let iconTileFactor = 3.2;
 let iconTileSize = 9;
 let iconCanvasPixelSize = iconTileSize;
 let iconImgPixelSize = iconTileFactor * iconTileSize;
@@ -172,7 +172,7 @@ function makeMatIcon(mat, el) {
       
     }
 
-    for (var k = 1; k <= ( 2 *i + 1); k++) {
+    for (var k = 1; k <= ( 2 * i + 1); k++) {
       let c = materialColors[mat]({rand: Math.random(), age: 0.075});
 
       let off = ((j + k - 2) + ((i + ((iconCanvasPixelSize - n) / 2)) * iconCanvasPixelSize)) * 4;
@@ -184,17 +184,11 @@ function makeMatIcon(mat, el) {
   }
 
   let borderColor = materialColors[mat]({rand: 1.5, age: 0.075});
-  let backColor = materialColors[mat]({rand: 0.5, age: 0.075});
 
   iconCtx.putImageData(iconImgData, 0, 0);
   
   el.className = 'materialIcon';
   el.src = iconCanvas.toDataURL('image/png');
-
-  let backgroundChoice = backColor.r * 0.299 + backColor.g * 0.587 + backColor.b * 0.114 > 186;
-
-  el.style.backgroundColor = backgroundChoice ? 'rgb(20, 20, 20)' : 'rgb(250, 250, 250)';
-  el.style.borderColor = backgroundChoice ? 'rgb(100, 100, 100)' : 'rgb(200, 200, 200)';
 
   if (el.parentNode) { el.parentNode.style.borderColor = `rgb(${borderColor.r}, ${borderColor.g}, ${borderColor.b})`; }
   
@@ -238,6 +232,9 @@ function makeMatMenu() {
   }
 
   makeMatIcon(mouseSelected, materialMenuOpenerEl);
+
+  materialMenuOpenerEl.style.width = '40px';
+  materialMenuOpenerEl.style.height = '40px';
 
   materialMenuOpenerEl.onclick = toggleMaterialMenu;
 }
@@ -320,7 +317,7 @@ function resizeCanvas() {
   pixels = imgData.data;
 
   let aPadding = `${Math.floor(scaleFactor * 1.8)}px`;
-  let lPadding = `${Math.floor(scaleFactor * 1.8) + 55}px`;
+  let lPadding = `${Math.floor(scaleFactor * 1.8) + 70}px`;
 
   infoEl.style.padding = aPadding;
   infoEl.style.paddingLeft = lPadding;
@@ -370,7 +367,7 @@ function mouseMoveHandler(e) {
   let left = Math.floor(actualPosX - surrounding + evenAdd) * scaleFactor;
   let top = Math.floor(actualPosY - surrounding + evenAdd) * scaleFactor;
   
-  overlayCtx.globalAlpha = 0.9;
+  overlayCtx.globalAlpha = 0.8;
   overlayCtx.lineWidth = 2;
   overlayCtx.strokeStyle = 'white';
   
@@ -478,6 +475,7 @@ window.onload = function() {
   faucetCheckboxEl = document.getElementById('faucetCheckbox');
   cursorSelectEl = document.getElementById('cursorSelect');
   infoEl = document.getElementById('info');
+  detailedInfoEl = document.getElementById('detailedInfo');
   
   /*frameLockCheckboxEl = document.getElementById('framelockCheckbox');
   frameLockCheckboxEl.onchange = function(e) {
@@ -507,10 +505,10 @@ window.onload = function() {
   document.ontouchmove = function(e) { mouseMoveHandler(e.touches[0]); };
   document.ontouchend = function(e) { mouseUpHandler(e.touches[0]); };
   
-  /*document.oncontextmenu = function(e) {
+  document.oncontextmenu = function(e) {
     e.preventDefault();
     return false;
-  }*/
+  }
   
   window.onresize = function() {
     resizeCanvas();
@@ -523,6 +521,8 @@ window.onload = function() {
       } else {
         PerfOverlay.on();
       }
+
+      detailedInfoEl.className = detailedInfoEl.className === 'show' ? '' : 'show';
     }
     
     if (e.key === 'w') {
