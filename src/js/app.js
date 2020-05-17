@@ -70,9 +70,10 @@ let densityLookup = {
   'lava': 100,
   
   'gunpowder': 300,
+
+  'grass': 399,
+  'dirt': 400,
   'sand': 500,
-  'grass': 599,
-  'dirt': 600,
   'stone': 700,
   'glass': 800,
   
@@ -127,7 +128,7 @@ let reactions = [
 
   {reactants: ['wood', 'fire'], product: 'fire', forced: 1.5, chance: 0.4},
 
-  {reactants: ['dirt', 'air'], product: 'grass', chance: 0.005, reactantStay: 1}
+  {reactants: ['dirt', 'air'], product: 'grass', chance: 0.008, reactantStay: 1}
 ];
 
 function compileReactants() {

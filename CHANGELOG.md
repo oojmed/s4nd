@@ -1,5 +1,10 @@
 # s4ndb0x changelog
 
+## v2.0.2
+- Made dirt and grass less dense than sand
+- Made grass populate grass faster
+
+
 ## v2.0.1
 - Moved version info to start of info text instead of after
 
