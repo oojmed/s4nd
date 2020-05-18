@@ -101,7 +101,8 @@ let liquidLookup = {
   'water': true,
   'lava': true,
   'crude_oil': true,
-  'acid': true
+  'acid': true,
+  'air': true
 };
 
 let viscosityLookup = {
@@ -695,14 +696,14 @@ export function update() {
             let bottom = y === worldHeight - 1;
             
             if (!bottom && !t.typeUpdated) {
-              if (densityLookup[belowTile.material] < densityLookup[t.material]) {
+              if (liquidLookup[belowTile.material] && densityLookup[belowTile.material] < densityLookup[t.material]) {
                 moveTile(t, belowTile);
               } else {
                 let belowLeftTile = x <= 0 ? {material: 'nonExistant', typeUpdated: false, reactionUpdated: false} : tiles[x - 1][y + 1];
                 let belowRightTile = x >= worldWidth - 1 ? {material: 'nonExistant', typeUpdated: false, reactionUpdated: false} : tiles[x + 1][y + 1];
                 
-                let belowLeftAvaliable = densityLookup[belowLeftTile.material] < densityLookup[t.material];
-                let belowRightAvaliable = densityLookup[belowRightTile.material] < densityLookup[t.material];
+                let belowLeftAvaliable = liquidLookup[belowLeftTile.material] && densityLookup[belowLeftTile.material] < densityLookup[t.material];
+                let belowRightAvaliable = liquidLookup[belowRightTile.material] && densityLookup[belowRightTile.material] < densityLookup[t.material];
                 
                 if (belowLeftAvaliable && belowRightAvaliable) {
                   if (Math.random() >= 0.5) {
