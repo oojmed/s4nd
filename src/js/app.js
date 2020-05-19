@@ -35,7 +35,7 @@ let mouseDown = false;
 
 let faucetOn = false;
 
-let materials = ['fire', 'air', 'acid', 'crude_oil', 'water', 'lava', 'gunpowder', 'grass', 'dirt', 'sand', 'stone', 'glass', 'wood', 'wall']; //['water', 'crude_oil', 'lava', 'acid', 'sand', 'dirt', 'wood', 'grass', 'gunpowder', 'glass', 'stone', 'wall', 'air', 'fire'];
+let materials = ['fire', 'air', 'acid', 'crude_oil', 'water', 'lava', 'gunpowder', 'grass', 'dirt', 'sand', 'concrete', 'stone', 'glass', 'wood', 'wall']; //['water', 'crude_oil', 'lava', 'acid', 'sand', 'dirt', 'wood', 'grass', 'gunpowder', 'glass', 'stone', 'wall', 'air', 'fire'];
 let mouseSelected = 'sand';
 let oldMouseSelected = undefined;
 
@@ -67,7 +67,8 @@ let materialColors = {
   'gunpowder': (t) => ({r: 50 - (t.rand * 40), g: 50 - (t.rand * 40), b: 50 - (t.rand * 40), a: 255}),
   'dirt': (t) => ({r: 180 - (t.rand * 60), g: 80 - (t.rand * 40), b: 10, a: 255}),
   'grass': (t) => ({r: 40, g: 230 - (t.rand * 60), b: 50, a: 255}),
-  'wood': (t) => ({r: 240 - (t.rand * 40), g: 120 - (t.rand * 20), b: 20, a: 255})
+  'wood': (t) => ({r: 240 - (t.rand * 40), g: 120 - (t.rand * 20), b: 20, a: 255}),
+  'concrete': (t) => ({r: 150 - (t.rand * 20), g: 150 - (t.rand * 20), b: 150 - (t.rand * 20), a: 180})
 };
 
 let densityLookup = {
@@ -83,6 +84,8 @@ let densityLookup = {
   'grass': 399,
   'dirt': 400,
   'sand': 500,
+
+  'concrete': 650,
   'stone': 700,
   'glass': 800,
   
@@ -104,6 +107,8 @@ let liquidLookup = {
   'lava': true,
   'crude_oil': true,
   'acid': true,
+  'concrete': true,
+
   'air': true
 };
 
@@ -111,7 +116,8 @@ let viscosityLookup = {
   'water': 1,
   'acid': 2,
   'crude_oil': 2,
-  'lava': 5
+  'lava': 5,
+  'concrete': 5
 };
 
 let floatLookup = {
@@ -143,6 +149,8 @@ let reactions = [
 
   {reactants: ['grass', 'fire'], product: 'fire', forced: 0.5, chance: 10},
   {reactants: ['grass', 'lava'], product: 'fire', reactantStay: 1},
+
+  {reactants: ['concrete', 'air'], product: 'stone', chance: 0.008, reactantStay: 1},
 ];
 
 function compileReactants() {

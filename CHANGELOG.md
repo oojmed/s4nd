@@ -1,5 +1,9 @@
 # s4ndb0x changelog
 
+## v3.6.0
+- Added concrete - slowly turns to stone
+
+
 ## v3.5.0
 - Optimised reactions and moving of tiles
 
