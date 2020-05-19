@@ -505,7 +505,6 @@ window.onload = function() {
 
   // LoadingDisplay.write('Gathering UI elements...');
 
-  
   scaleSelectEl = document.getElementById('scaleSelect');
   faucetCheckboxEl = document.getElementById('faucetCheckbox');
   cursorSelectEl = document.getElementById('cursorSelect');
@@ -909,6 +908,8 @@ export function update() {
 
   if (detailedInfoEl.className !== 'show') return;
   
+  if (detailedInfoEl.className !== 'show') return;
+
   let timeTaken = performance.now() - startTime;
   
   addTime(ticksDone - 1); //timeTaken);
