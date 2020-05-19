@@ -489,6 +489,9 @@ window.onload = function() {
   
   // LoadingDisplay.write('\nRunning initial update...');
 
+  detailedInfoEl = document.getElementById('detailedInfo');
+  fpsEl = document.getElementById('fps');
+
   update();
 
   // LoadingDisplay.write('\nCreating material picker...');
@@ -500,13 +503,10 @@ window.onload = function() {
 
   // LoadingDisplay.write('Gathering UI elements...');
   
-  fpsEl = document.getElementById('fps');
-  
   scaleSelectEl = document.getElementById('scaleSelect');
   faucetCheckboxEl = document.getElementById('faucetCheckbox');
   cursorSelectEl = document.getElementById('cursorSelect');
   infoEl = document.getElementById('info');
-  detailedInfoEl = document.getElementById('detailedInfo');
   
   /*frameLockCheckboxEl = document.getElementById('framelockCheckbox');
   frameLockCheckboxEl.onchange = function(e) {
