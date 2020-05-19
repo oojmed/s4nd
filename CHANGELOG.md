@@ -1,5 +1,10 @@
 # s4ndb0x changelog
 
+## v3.4.0
+- Added a new loading screen, however currently left disabled
+- Optimised some maths
+
+
 ## v3.3.0
 - Material no longer sink through non-liquids
 

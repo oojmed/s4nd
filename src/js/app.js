@@ -1,7 +1,9 @@
 import * as PerfOverlay from './perfOverlay';
 import { addTime } from './exportedVars';
-import { betterSinAngle, betterSinRadians } from './sinTaylor';
+import * as BetterMath from './betterMath';
 import { registerSW } from './pwa/register';
+
+// import * as LoadingDisplay from './loadingDisplay';
 
 export let canvas, ctx;
 export let fps = 0;
@@ -60,7 +62,7 @@ let materialColors = {
   'stone': (t) => ({ r: 200 - (t.rand * 40), g: 200 - (t.rand * 40), b: 200 - (t.rand * 40), a: 255 }),
   'glass': (t) => ({ r: 250 - (t.rand * 20), g: 250 - (t.rand * 20), b: 250 - (t.rand * 20), a: 230 }),
   'air': (t) => ({ r: 0, g: 0, b: 20 / (t.faucet === undefined ? 0 : 0), a: 20 - (0 / t.age) }), // you may be wondering why age is being used here, and it's because if t.age is used in only one function (fire) then JIT breaks it in browsers (at least in chromium)
-  'fire': (t) => ({ r: 255, g: 65 + (t.rand * 20), b: 25 + (t.rand * 30), a: (betterSinRadians(t.age * 22) + 0.3) * 255 }),
+  'fire': (t) => ({ r: 255, g: 65 + (t.rand * 20), b: 25 + (t.rand * 30), a: (BetterMath.sin(t.age * 22) + 0.3) * 255 }),
   'acid': (t) => ({ r: 80 - (t.rand * 70), g: 225, b: 80 - (t.rand * 65), a: 200}),
   'gunpowder': (t) => ({r: 50 - (t.rand * 40), g: 50 - (t.rand * 40), b: 50 - (t.rand * 40), a: 255}),
   'dirt': (t) => ({r: 180 - (t.rand * 60), g: 80 - (t.rand * 40), b: 10, a: 255}),
@@ -177,7 +179,7 @@ function makeMatIcon(mat, el) {
     }
 
     for (var k = 1; k <= ( 2 * i + 1); k++) {
-      let c = materialColors[mat]({rand: Math.random(), age: 0.075});
+      let c = materialColors[mat]({rand: BetterMath.random(), age: 0.075});
 
       let off = ((j + k - 2) + ((i + ((iconCanvasPixelSize - n) / 2)) * iconCanvasPixelSize)) * 4;
       iconPixels[off] = c.r;
@@ -259,7 +261,7 @@ function initTiles() {
   let newTiles = Array.from(Array(worldWidth), () => Array.apply(undefined, Array(worldHeight)).map((x) => Object.assign({}, baseTile)));
   
   newTiles = newTiles.map((p, x) => p.map((t, y) => {
-    t.rand = Math.random();
+    t.rand = BetterMath.random();
     
     t.x = x;
     t.y = y;
@@ -433,8 +435,11 @@ function mouseDraw(pos = mousePos) {
 let overlayCanvas, overlayCtx;
 
 window.onload = function() {
+  // LoadingDisplay.init();
+  // LoadingDisplay.write('Creating canvases...');
+
   let startTime = performance.now();
-  
+
   canvas = document.createElement('canvas');
   canvas.width = viewportWidth;
   canvas.height = viewportHeight;
@@ -459,10 +464,14 @@ window.onload = function() {
   document.body.prepend(iconCanvas);
   document.body.prepend(overlayCanvas);
   document.body.prepend(canvas);
+
+  // LoadingDisplay.write('Getting contexts...');
   
   ctx = canvas.getContext('2d');
   overlayCtx = overlayCanvas.getContext('2d');
   iconCtx = iconCanvas.getContext('2d');
+
+  // LoadingDisplay.write('Gathering image data...');
   
   imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
   pixels = imgData.data;
@@ -470,15 +479,26 @@ window.onload = function() {
   iconImgData = iconCtx.getImageData(0, 0, iconCanvasPixelSize, iconCanvasPixelSize);
   iconPixels = iconImgData.data;
 
+  // LoadingDisplay.write('\nInitialising tiles...');
+
+  initTiles();
+
+  // LoadingDisplay.write('\nCompiling reactants...');
+
+  compileReactants();
+  
+  // LoadingDisplay.write('\nRunning initial update...');
+
+  update();
+
+  // LoadingDisplay.write('\nCreating material picker...');
+
   materialMenuOpenerEl = document.getElementById('materialMenuOpener');
   materialMenuEl = document.getElementById('materialMenu');
 
-  initTiles();
-  compileReactants();
-  
-  update();
-
   makeMatMenu();
+
+  // LoadingDisplay.write('Gathering UI elements...');
   
   fpsEl = document.getElementById('fps');
   
@@ -501,12 +521,16 @@ window.onload = function() {
   worldFullscreenCheckboxEl.onchange = function(e) {
     worldFullscreen = worldFullscreenCheckboxEl.checked;
   };*/
+
+  // LoadingDisplay.write('Initialising dropdowns...');
   
   initScaleSelect();
   initCursorSelect();
 
-  let loadingTime = performance.now() - startTime;
-  console.log(loadingTime);
+  /*let loadingTime = performance.now() - startTime;
+  console.log(loadingTime);*/
+
+  // LoadingDisplay.write('Adding event listeners...');
   
   document.onmousedown = function(e) { mouseDownHandler(e); };
   document.onmousemove = function(e) { mouseMoveHandler(e); };
@@ -572,10 +596,18 @@ window.onload = function() {
       toggleMaterialMenu();
     }
   };
+
+  // LoadingDisplay.write('Initialising Performance Overlay...');
   
   PerfOverlay.init();
 
+  // LoadingDisplay.write('Registering service worker...');
+
   registerSW();
+
+  // LoadingDisplay.write(`\n\nTotal load time: ${(performance.now() - startTime).toFixed(2)}ms`);
+
+  // LoadingDisplay.finish();
 };
 
 let paused = false;
@@ -655,8 +687,8 @@ export function update() {
         let nonExistantCount = 0;
         for (let neighbour of adjacentNeighbours) {
           if (neighbour.material === t.material) adjSameCount++;
-          if (neighbour.material === 'air') airCount++;
-          if (neighbour.material === 'nonExistant') nonExistantCount++;
+          else if (neighbour.material === 'air') airCount++;
+          else if (neighbour.material === 'nonExistant') nonExistantCount++;
         }
         
         if (oldAgeLookup[t.material] !== false) {
@@ -673,9 +705,8 @@ export function update() {
         
         let c = materialColors[t.material](t);
         
-        let randIncrease = 0;
-        randIncrease = liquidLookup[t.material] ? ((Math.random() * 2 - 1) / 20) : randIncrease;
-        randIncrease = t.material === 'fire' ? ((Math.random() * 2 - 1) / 5) : randIncrease;
+        let randIncrease = liquidLookup[t.material] && t.material !== 'air' ? ((BetterMath.random() * 2 - 1) / 20) : 0;
+        randIncrease = t.material === 'fire' ? ((BetterMath.random() * 2 - 1) / 5) : randIncrease;
         
         if (!paused) t.rand += randIncrease;
         
@@ -706,7 +737,7 @@ export function update() {
                 let belowRightAvaliable = liquidLookup[belowRightTile.material] && densityLookup[belowRightTile.material] < densityLookup[t.material];
                 
                 if (belowLeftAvaliable && belowRightAvaliable) {
-                  if (Math.random() >= 0.5) {
+                  if (BetterMath.random() >= 0.5) {
                     moveTile(t, belowRightTile);
                   } else {
                     moveTile(t, belowLeftTile);
@@ -721,12 +752,12 @@ export function update() {
                   }
                 }
                 
-                if (liquidLookup[t.material] && !belowLeftAvaliable && !belowRightAvaliable && Math.random() > (viscosityLookup[t.material] / 100)) {
+                if (liquidLookup[t.material] && !belowLeftAvaliable && !belowRightAvaliable && BetterMath.random() > (viscosityLookup[t.material] / 100)) {
                   let sameLeftAvaliable = densityLookup[sameLeftTile.material] < densityLookup[t.material];
                   let sameRightAvaliable = densityLookup[sameRightTile.material] < densityLookup[t.material];
                   
                   if (sameLeftAvaliable && sameRightAvaliable) {
-                    if (Math.random() >= 0.5) {
+                    if (BetterMath.random() >= 0.5) {
                       moveTile(t, sameRightTile);
                     } else {
                       moveTile(t, sameLeftTile);
@@ -752,7 +783,7 @@ export function update() {
               if (neighbouringTile.material === t.material || neighbouringTile.reactionUpdated) continue;
               
               if (r.reactants.includes(neighbouringTile.material)) {
-                if (Math.random() > (r.chance || 100) / 100) continue;
+                if (BetterMath.random() > (r.chance || 100) / 100) continue;
                 
                 let product = r.product.slice();
                 
