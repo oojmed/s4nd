@@ -551,11 +551,11 @@ window.onload = function() {
   
   document.onkeypress = function(e) {
     if (e.key === 'p') {
-      if (PerfOverlay.enabled) {
+      /*if (PerfOverlay.enabled) {
         PerfOverlay.off();
       } else {
         PerfOverlay.on();
-      }
+      }*/
 
       detailedInfoEl.className = detailedInfoEl.className === 'show' ? '' : 'show';
     }
@@ -873,6 +873,8 @@ export function update() {
     ticksTotal = 0;
   }
   
+  if (detailedInfoEl.className !== 'show') return;
+
   let timeTaken = performance.now() - startTime;
   
   addTime(ticksDone - 1); //timeTaken);
@@ -886,6 +888,12 @@ export function update() {
     
     lastCalledTime = performance.now();
     
-    fpsEl.innerText = `${Math.floor(timeTaken)}ms - ${ticksDone - 1} ticks - ${ticksPerSecond} TPS - ${fps} fps`;
+    fpsArr.unshift(fps);
+
+    if (fpsArr.length > 1000) fpsArr.pop();
+
+    fpsEl.innerText = `${Math.floor(timeTaken)}ms - ${ticksDone - 1} ticks - ${ticksPerSecond} TPS - FPS: ${(fpsArr.reduce(( p, c ) => p + c, 0) / fpsArr.length).toFixed(0)} avg, ${Math.max(...fpsArr)} max, ${Math.min(...fpsArr)} min`;
   }
 }
+
+let fpsArr = [];
