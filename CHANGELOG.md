@@ -1,5 +1,9 @@
 # s4ndb0x changelog
 
+## v3.5.0
+- Optimised reactions and moving of tiles
+
+
 ## v3.4.0
 - Added a new loading screen, however currently left disabled
 - Optimised some maths

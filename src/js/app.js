@@ -26,7 +26,7 @@ let pixels;
 
 let infoEl, fpsEl, faucetCheckboxEl, scaleSelectEl, cursorSelectEl, materialMenuOpenerEl, materialMenuEl, detailedInfoEl, frameLockCheckboxEl, worldFullscreenCheckboxEl;
 
-let baseTile = { material: 'air', typeUpdated: false, reactionUpdated: false, rand: 0, age: 0 };
+let baseTile = { material: 'air', rand: 0, age: 0 };
 
 let mousePos = {x: 0, y: 0};
 let mouseDrawInterval;
@@ -168,7 +168,9 @@ function compileReactants() {
     i++;
   }
 
-  console.log(reactions);
+  reactions.map((r) => {
+    r.chance = (r.chance || 100) / 100;
+  });
 }
 
 function makeMatIcon(mat, el) {
@@ -258,7 +260,7 @@ function initTiles() {
   worldWidth = viewportWidth;
   worldHeight = viewportHeight;
   
-  let newTiles = Array.from(Array(worldWidth), () => Array.apply(undefined, Array(worldHeight)).map((x) => Object.assign({}, baseTile)));
+  let newTiles = Array.from(Array(worldHeight), () => Array.apply(undefined, Array(worldWidth)).map((x) => Object.assign({}, baseTile)));
   
   newTiles = newTiles.map((p, x) => p.map((t, y) => {
     t.rand = BetterMath.random();
@@ -271,13 +273,13 @@ function initTiles() {
   
   // border
   for (let x = 0; x < worldWidth; x++) {
-    newTiles[x][0].material = 'wall';
-    newTiles[x][worldHeight - 1].material = 'wall';
+    newTiles[0][x].material = 'wall';
+    newTiles[worldHeight - 1][x].material = 'wall';
   }
   
   for (let y = 0; y < worldHeight; y++) {
-    newTiles[0][y].material = 'wall';
-    newTiles[worldWidth - 1][y].material = 'wall';
+    newTiles[y][0].material = 'wall';
+    newTiles[y][worldWidth - 1].material = 'wall';
   }
   
   tiles = newTiles;
@@ -408,11 +410,11 @@ function mouseDraw(pos = mousePos) {
   let actualPosX = cameraX + Math.floor(pos.x / scaleFactor);
   let actualPosY = cameraY + Math.floor(pos.y / scaleFactor);
   
-  tiles[actualPosX][actualPosY].age = 0;
+  tiles[actualPosY][actualPosX].age = 0;
   
   if (faucetOn && oldMouseSelected === undefined) {
-    tiles[actualPosX][actualPosY].material = 'wall';
-    tiles[actualPosX][actualPosY].faucet = mouseSelected;
+    tiles[actualPosY][actualPosX].material = 'wall';
+    tiles[actualPosY][actualPosX].faucet = mouseSelected;
     
     return;
   }
@@ -424,9 +426,9 @@ function mouseDraw(pos = mousePos) {
   
   for (let x = actualPosX - surrounding + evenAdd; x <= actualPosX + surrounding; x++) {
     for (let y = actualPosY - surrounding + evenAdd; y <= actualPosY + surrounding; y++) {
-      tiles[x][y].material = mouseSelected;
-      tiles[x][y].faucet = undefined;
-      tiles[x][y].age = 0;
+      tiles[y][x].material = mouseSelected;
+      tiles[y][x].faucet = undefined;
+      tiles[y][x].age = 0;
     }
   }
 }
@@ -489,6 +491,9 @@ window.onload = function() {
   
   // LoadingDisplay.write('\nRunning initial update...');
 
+  detailedInfoEl = document.getElementById('detailedInfo');
+  fpsEl = document.getElementById('fps');
+
   update();
 
   // LoadingDisplay.write('\nCreating material picker...');
@@ -499,14 +504,12 @@ window.onload = function() {
   makeMatMenu();
 
   // LoadingDisplay.write('Gathering UI elements...');
-  
-  fpsEl = document.getElementById('fps');
+
   
   scaleSelectEl = document.getElementById('scaleSelect');
   faucetCheckboxEl = document.getElementById('faucetCheckbox');
   cursorSelectEl = document.getElementById('cursorSelect');
   infoEl = document.getElementById('info');
-  detailedInfoEl = document.getElementById('detailedInfo');
   
   /*frameLockCheckboxEl = document.getElementById('framelockCheckbox');
   frameLockCheckboxEl.onchange = function(e) {
@@ -551,11 +554,11 @@ window.onload = function() {
   
   document.onkeypress = function(e) {
     if (e.key === 'p') {
-      if (PerfOverlay.enabled) {
+      /*if (PerfOverlay.enabled) {
         PerfOverlay.off();
       } else {
         PerfOverlay.on();
-      }
+      }*/
 
       detailedInfoEl.className = detailedInfoEl.className === 'show' ? '' : 'show';
     }
@@ -620,22 +623,25 @@ function renderText(x, y, size, color, text, align) {
   ctx.fillText(text, x, y);
 }
 
-function moveTile(originalTile, newTile) {
+function moveTile(originalTile, newTile, oX, oY, nX, nY) {
   let originalMaterial = originalTile.material.slice();
   let originalAge = Number(originalTile.age);
-  let originalReactionUpdated = Boolean(originalTile.reactionUpdated);
+  //let originalReactionUpdated = Boolean(originalTile.reactionUpdated);
   
   originalTile.material = newTile.material;
   newTile.material = originalMaterial;
   
-  newTile.typeUpdated = true;
-  originalTile.typeUpdated = true;
+  typeUpdatedMap[oY][oX] = true;
+  typeUpdatedMap[nY][nX] = true;
+
+  //newTile.typeUpdated = true;
+  //originalTile.typeUpdated = true;
   
   originalTile.age = newTile.age;
   newTile.age = originalAge;
   
-  originalTile.reactionUpdated = newTile.reactionUpdated;
-  newTile.reactionUpdated = originalReactionUpdated;
+  /*originalTile.reactionUpdated = newTile.reactionUpdated;
+  newTile.reactionUpdated = originalReactionUpdated;*/
 }
 
 let lastStartTime;
@@ -671,14 +677,14 @@ export function update() {
         
         // let realDeltaTime = deltaTime / Math.floor(recentAge / factor);
         
-        let t = tiles[x][y];
+        let t = tiles[y][x];
         
         if (!paused && ticksDone === 1) t.age += deltaTime;
         
-        let aboveTile = tiles[x][y - 1] || {material: 'nonExistant', typeUpdated: false, reactionUpdated: false};
-        let belowTile = tiles[x][y + 1] || {material: 'nonExistant', typeUpdated: false, reactionUpdated: false};
-        let sameLeftTile = x <= 0 ? {material: 'nonExistant', typeUpdated: false, reactionUpdated: false} : tiles[x - 1][y];
-        let sameRightTile = x >= worldWidth - 1 ? {material: 'nonExistant', typeUpdated: false, reactionUpdated: false} : tiles[x + 1][y];
+        let aboveTile = y > 0 ? tiles[y - 1][x] || {material: 'nonExistant', typeUpdated: false, reactionUpdated: false} : {material: 'nonExistant', typeUpdated: false, reactionUpdated: false};
+        let belowTile = y < worldHeight - 1 ? tiles[y + 1][x] || {material: 'nonExistant', typeUpdated: false, reactionUpdated: false} : {material: 'nonExistant', typeUpdated: false, reactionUpdated: false};
+        let sameLeftTile = tiles[y][x - 1] || {material: 'nonExistant', typeUpdated: false, reactionUpdated: false};
+        let sameRightTile = tiles[y][x + 1] || {material: 'nonExistant', typeUpdated: false, reactionUpdated: false};
         
         let adjacentNeighbours = [aboveTile, belowTile, sameLeftTile, sameRightTile];
         
@@ -687,7 +693,7 @@ export function update() {
         let nonExistantCount = 0;
         for (let neighbour of adjacentNeighbours) {
           if (neighbour.material === t.material) adjSameCount++;
-          else if (neighbour.material === 'air') airCount++;
+          if (neighbour.material === 'air') airCount++;
           else if (neighbour.material === 'nonExistant') nonExistantCount++;
         }
         
@@ -699,8 +705,8 @@ export function update() {
         }
         
         if (t.faucet !== undefined) {
-          tiles[x][y + 1].material = t.faucet.slice();
-          tiles[x][y + 1].age = 0;
+          belowTile.material = t.faucet.slice();
+          belowTile.age = 0;
         }
         
         let c = materialColors[t.material](t);
@@ -726,29 +732,29 @@ export function update() {
           if (!staticLookup[t.material]) {
             let bottom = y === worldHeight - 1;
             
-            if (!bottom && !t.typeUpdated) {
+            if (!bottom && !typeUpdatedMap[y][x]) {
               if (liquidLookup[belowTile.material] && densityLookup[belowTile.material] < densityLookup[t.material]) {
-                moveTile(t, belowTile);
+                moveTile(t, belowTile, x, y, x, y + 1);
               } else {
-                let belowLeftTile = x <= 0 ? {material: 'nonExistant', typeUpdated: false, reactionUpdated: false} : tiles[x - 1][y + 1];
-                let belowRightTile = x >= worldWidth - 1 ? {material: 'nonExistant', typeUpdated: false, reactionUpdated: false} : tiles[x + 1][y + 1];
+                let belowLeftTile = y < worldHeight - 1 ? tiles[y + 1][x - 1] || {material: 'nonExistant', typeUpdated: false, reactionUpdated: false} : {material: 'nonExistant', typeUpdated: false, reactionUpdated: false};
+                let belowRightTile = y < worldHeight - 1 ? tiles[y + 1][x + 1] || {material: 'nonExistant', typeUpdated: false, reactionUpdated: false} : {material: 'nonExistant', typeUpdated: false, reactionUpdated: false};
                 
                 let belowLeftAvaliable = liquidLookup[belowLeftTile.material] && densityLookup[belowLeftTile.material] < densityLookup[t.material];
                 let belowRightAvaliable = liquidLookup[belowRightTile.material] && densityLookup[belowRightTile.material] < densityLookup[t.material];
                 
                 if (belowLeftAvaliable && belowRightAvaliable) {
                   if (BetterMath.random() >= 0.5) {
-                    moveTile(t, belowRightTile);
+                    moveTile(t, belowRightTile, x, y, x + 1, y + 1);
                   } else {
-                    moveTile(t, belowLeftTile);
+                    moveTile(t, belowLeftTile, x, y, x - 1, y + 1);
                   }
                 } else {
                   if (belowLeftAvaliable) {
-                    moveTile(t, belowLeftTile);
+                    moveTile(t, belowLeftTile, x, y, x - 1, y + 1);
                   }
                   
                   if (belowRightAvaliable) {
-                    moveTile(t, belowRightTile);
+                    moveTile(t, belowRightTile, x, y, x + 1, y + 1);
                   }
                 }
                 
@@ -758,17 +764,17 @@ export function update() {
                   
                   if (sameLeftAvaliable && sameRightAvaliable) {
                     if (BetterMath.random() >= 0.5) {
-                      moveTile(t, sameRightTile);
+                      moveTile(t, sameRightTile, x, y, x + 1, y);
                     } else {
-                      moveTile(t, sameLeftTile);
+                      moveTile(t, sameLeftTile, x, y, x - 1, y);
                     }
                   } else {
                     if (sameLeftAvaliable) {
-                      moveTile(t, sameLeftTile);
+                      moveTile(t, sameLeftTile, x, y, x + 1, y);
                     }
                     
                     if (sameRightAvaliable) {
-                      moveTile(t, sameRightTile);
+                      moveTile(t, sameRightTile, x, y, x - 1, y);
                     }
                   }
                 }
@@ -779,11 +785,14 @@ export function update() {
           for (let r of reactions) {
             if (!r.reactants.includes(t.material)) continue;
             
+            let i = -1;
             for (let neighbouringTile of adjacentNeighbours) {
+              i++;
+
               if (neighbouringTile.material === t.material || neighbouringTile.reactionUpdated) continue;
               
               if (r.reactants.includes(neighbouringTile.material)) {
-                if (BetterMath.random() > (r.chance || 100) / 100) continue;
+                if (BetterMath.random() > r.chance) continue;
                 
                 let product = r.product.slice();
                 
@@ -791,13 +800,35 @@ export function update() {
                 
                 if (r.reactantStay !== thisIndex) {
                   t.material = product;
-                  t.reactionUpdated = true;
+                  //t.reactionUpdated = true;
+                  reactionUpdatedMap[y][x] = true;
                   t.age = 0;
                 }
                 
                 if (r.reactantStay !== (thisIndex === 0 ? 1 : 0)) {
                   neighbouringTile.material = product;
-                  neighbouringTile.reactionUpdated = true;
+                  //neighbouringTile.reactionUpdated = true;
+
+                  let nX = x;
+                  let nY = y;
+
+                  switch (i) {
+                    case 0:
+                      y--;
+                      break;
+                    case 1:
+                      y++;
+                      break;
+                    case 2:
+                      x--;
+                      break;
+                    case 3:
+                      x++;
+                      break;
+                  }
+
+                  reactionUpdatedMap[nY][nX] = true;
+
                   neighbouringTile.age = 0;
                 }
                 
@@ -814,7 +845,7 @@ export function update() {
           
           if (floatLookup[t.material]) {
             if (densityLookup[aboveTile.material] < densityLookup[t.material]) {
-              moveTile(t, aboveTile);
+              moveTile(t, aboveTile, x, y, x, y - 1);
             }
           }
         }
@@ -832,7 +863,7 @@ export function update() {
           c = materialColors[t.material](t);
         }
         
-        if ((!paused || t.age === 0) && ticksDone === Math.floor(recentAge / timeFactor) && (x >= cameraX && x < cameraX + viewportWidth) && (y >= cameraY && y < cameraY + viewportHeight)) {
+        if ((!paused || t.age === 0) && ticksDone === (recentAge / timeFactor | 0) && (x >= cameraX && x < cameraX + viewportWidth) && (y >= cameraY && y < cameraY + viewportHeight)) {
           let off = ((x - cameraX) + ((y - cameraY) * viewportWidth)) * 4;
           
           pixels[off] = c.r;
@@ -843,12 +874,15 @@ export function update() {
       }
     }
 
-    for (let x = 0; x < worldWidth; x++) {
+    typeUpdatedMap = ar(worldWidth, worldHeight, false);
+    reactionUpdatedMap = ar(worldWidth, worldHeight, false);
+
+    /*for (let x = 0; x < worldWidth; x++) {
       for (let y = 0; y < worldHeight; y++) {
-        tiles[x][y].typeUpdated = false;
-        tiles[x][y].reactionUpdated = false;
+        tiles[y][x].typeUpdated = false;
+        tiles[y][x].reactionUpdated = false;
       }
-    }
+    }*/
   }
   
   recentAge %= timeFactor;
@@ -872,6 +906,8 @@ export function update() {
     ticksPerSecond = ticksTotal;
     ticksTotal = 0;
   }
+
+  if (detailedInfoEl.className !== 'show') return;
   
   let timeTaken = performance.now() - startTime;
   
@@ -886,6 +922,19 @@ export function update() {
     
     lastCalledTime = performance.now();
     
-    fpsEl.innerText = `${Math.floor(timeTaken)}ms - ${ticksDone - 1} ticks - ${ticksPerSecond} TPS - ${fps} fps`;
+    fpsArr.unshift(fps);
+
+    if (fpsArr.length > 1000) fpsArr.pop();
+
+    fpsEl.innerText = `${Math.floor(timeTaken)}ms - ${ticksDone - 1} ticks - ${ticksPerSecond} TPS - FPS: ${(fpsArr.reduce(( p, c ) => p + c, 0) / fpsArr.length).toFixed(0)} avg, ${Math.max(...fpsArr)} max, ${Math.min(...fpsArr)} min`;
   }
+}
+
+let reactionUpdatedMap = ar(worldWidth, worldHeight, false);
+let typeUpdatedMap = ar(worldWidth, worldHeight, false);
+
+let fpsArr = [];
+
+function ar(x,y,cont) {
+  return new Array(y).fill(0).map(()=>Array(x).fill(cont))
 }
