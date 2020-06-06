@@ -1,7 +1,10 @@
 import * as PerfOverlay from './perfOverlay';
-import { addTime } from './exportedVars';
 import * as BetterMath from './betterMath';
 import { registerSW } from './pwa/register';
+
+import { shaders } from './renderer/shaders';
+
+import * as SaveUI from './saveSystem/ui';
 
 // import * as LoadingDisplay from './loadingDisplay';
 
@@ -24,7 +27,7 @@ let viewportSimRadius = 10;
 let imgData;
 let pixels;
 
-let infoEl, fpsEl, faucetCheckboxEl, scaleSelectEl, cursorSelectEl, materialMenuOpenerEl, materialMenuEl, detailedInfoEl, frameLockCheckboxEl, worldFullscreenCheckboxEl;
+let infoEl, fpsEl, faucetCheckboxEl, scaleSelectEl, cursorSelectEl, materialMenuOpenerEl, materialMenuEl, tileInfoEl, pauseMenuEl, loadOpenEl, saveOpenEl, loadMenuEl, frameLockCheckboxEl, worldFullscreenCheckboxEl;
 
 let baseTile = { material: 'air', rand: 0, age: 0 };
 
@@ -35,7 +38,9 @@ let mouseDown = false;
 
 let faucetOn = false;
 
-let materials = ['fire', 'air', 'acid', 'crude_oil', 'water', 'lava', 'gunpowder', 'grass', 'dirt', 'sand', 'concrete', 'stone', 'glass', 'wood', 'wall']; //['water', 'crude_oil', 'lava', 'acid', 'sand', 'dirt', 'wood', 'grass', 'gunpowder', 'glass', 'stone', 'wall', 'air', 'fire'];
+let materials = ['fire', 'air', 'acid', 'crude_oil', 'water', 'lava', 'concrete', 'gunpowder', 'grass', 'dirt', 'sand', 'stone', 'glass', 'wood', 'wall'];
+window.global_materials = materials;
+
 let mouseSelected = 'sand';
 let oldMouseSelected = undefined;
 
@@ -45,31 +50,12 @@ let cameraY = 0;
 let worldWidth = 200;
 let worldHeight = 200;
 
-let iconCanvas, iconCtx, iconImgData, iconPixels;
+let iconCanvas, iconCtx;
 let iconTileFactor = 3.2;
 let iconTileSize = 9;
-let iconCanvasPixelSize = iconTileSize;
 let iconImgPixelSize = iconTileFactor * iconTileSize;
 
 let worldFullscreen = true;
-
-let materialColors = {
-  'sand': (t) => ({ r: 250 - (t.rand * 40), g: 200 - (t.rand * 30), b: 55, a: 255 }),
-  'water': (t) => ({ r: 60 - (t.rand * 40), g: 190 - (t.rand * 20), b: 230, a: 200 }),
-  'crude_oil': (t) => ({ r: 100 - (t.rand * 20), g: 100 - (t.rand * 20), b: 100 - (t.rand * 20), a: 200 }),
-  'wall': (t) => ({ r: 120 - (t.rand * 45), g: 120 - (t.rand * 40), b: 120 - (t.rand * 35) + (t.faucet === undefined ? 0 : 150), a: 255 }),
-  'lava': (t) => ({ r: 230, g: 125 - (t.rand * 20), b: 10 + (t.rand * 30), a: 250 }),
-  'stone': (t) => ({ r: 200 - (t.rand * 40), g: 200 - (t.rand * 40), b: 200 - (t.rand * 40), a: 255 }),
-  'glass': (t) => ({ r: 250 - (t.rand * 20), g: 250 - (t.rand * 20), b: 250 - (t.rand * 20), a: 230 }),
-  'air': (t) => ({ r: 0, g: 0, b: 20 / (t.faucet === undefined ? 0 : 0), a: 20 - (0 / t.age) }), // you may be wondering why age is being used here, and it's because if t.age is used in only one function (fire) then JIT breaks it in browsers (at least in chromium)
-  'fire': (t) => ({ r: 255, g: 65 + (t.rand * 20), b: 25 + (t.rand * 30), a: (BetterMath.sin(t.age * 22) + 0.3) * 255 }),
-  'acid': (t) => ({ r: 80 - (t.rand * 70), g: 225, b: 80 - (t.rand * 65), a: 200}),
-  'gunpowder': (t) => ({r: 50 - (t.rand * 40), g: 50 - (t.rand * 40), b: 50 - (t.rand * 40), a: 255}),
-  'dirt': (t) => ({r: 180 - (t.rand * 60), g: 80 - (t.rand * 40), b: 10, a: 255}),
-  'grass': (t) => ({r: 40, g: 230 - (t.rand * 60), b: 50, a: 255}),
-  'wood': (t) => ({r: 240 - (t.rand * 40), g: 120 - (t.rand * 20), b: 20, a: 255}),
-  'concrete': (t) => ({r: 150 - (t.rand * 20), g: 150 - (t.rand * 20), b: 150 - (t.rand * 20), a: 180})
-};
 
 let densityLookup = {
   'air': 5,
@@ -78,6 +64,8 @@ let densityLookup = {
   'crude_oil': 30,
   'water': 50,
   'lava': 100,
+
+  'concrete': 200,
   
   'gunpowder': 300,
 
@@ -85,7 +73,6 @@ let densityLookup = {
   'dirt': 400,
   'sand': 500,
 
-  'concrete': 650,
   'stone': 700,
   'glass': 800,
   
@@ -120,7 +107,7 @@ let viscosityLookup = {
   'concrete': 5
 };
 
-let floatLookup = {
+let gasLookup = {
   'fire': true
 };
 
@@ -145,12 +132,12 @@ let reactions = [
   {reactants: ['wood', 'fire'], product: 'fire', forced: 1.5, chance: 0.4},
   {reactants: ['wood', 'lava'], product: 'fire', reactantStay: 1},
 
-  {reactants: ['dirt', 'air'], product: 'grass', chance: 0.008, reactantStay: 1},
+  {reactants: ['dirt', 'air'], product: 'grass', chance: 0.01, reactantStay: 1},
 
   {reactants: ['grass', 'fire'], product: 'fire', forced: 0.5, chance: 10},
   {reactants: ['grass', 'lava'], product: 'fire', reactantStay: 1},
 
-  {reactants: ['concrete', 'air'], product: 'stone', chance: 0.008, reactantStay: 1},
+  {reactants: ['concrete', 'air'], product: 'stone', chance: 0.02, reactantStay: 1},
 ];
 
 function compileReactants() {
@@ -182,24 +169,64 @@ function compileReactants() {
 }
 
 function makeMatIcon(mat, el) {
-  let n = 5;
-  for (var i = 0; i < n; i++) {
-    for (var j = 1; j < n - i; j++) {
-      
-    }
+  let iconImgData = iconCtx.getImageData(0, 0, iconTileSize, iconTileSize);
+  let iconPixels = iconImgData.data;
 
-    for (var k = 1; k <= ( 2 * i + 1); k++) {
-      let c = materialColors[mat]({rand: BetterMath.random(), age: 0.075});
+  for (let x = 0; x < iconTileSize; x++) {
+    for (let y = 0; y < iconTileSize; y++) {
+      let off = (x + (y * iconTileSize)) * 4;
 
-      let off = ((j + k - 2) + ((i + ((iconCanvasPixelSize - n) / 2)) * iconCanvasPixelSize)) * 4;
-      iconPixels[off] = c.r;
-      iconPixels[off + 1] = c.g;
-      iconPixels[off + 2] = c.b;
-      iconPixels[off + 3] = c.a;
+      iconPixels[off] = 0;
+      iconPixels[off + 1] = 0;
+      iconPixels[off + 2] = 0;
+      iconPixels[off + 3] = 0;
     }
   }
 
-  let borderColor = materialColors[mat]({rand: 1.5, age: 0.075});
+  iconCtx.putImageData(iconImgData, 0, 0);
+
+  if (!staticLookup[mat]) {
+    let n = 5;
+    for (let i = 0; i < n; i++) {
+      for (var j = 1; j < n - i; j++) {
+      
+      }
+
+      for (let k = 1; k <= ( 2 * i + 1); k++) {
+        let c = shaders[mat]({rand: BetterMath.random(), age: 0.075});
+
+        let off = ((j + k - 2) + ((i + ((iconTileSize - n) / 2)) * iconTileSize)) * 4;
+        iconPixels[off] = c.r;
+        iconPixels[off + 1] = c.g;
+        iconPixels[off + 2] = c.b;
+        iconPixels[off + 3] = c.a;
+      }
+    }
+  } else {
+    let xStart = Math.round(iconTileSize / 4);
+    let xEnd = Math.round(iconTileSize - xStart);
+    let ageStart = oldAgeLookup[mat] * 1 || 0;
+    let age = Number(ageStart);
+
+    for (let y = 1; y < iconTileSize - 1; y++) {
+      age -= ageStart / (iconTileSize - 1);
+
+      for (let x = xStart; x < xEnd; x++) {
+        var c = shaders[mat]({rand: BetterMath.random(), age});
+
+        let off = (x + (y * iconTileSize)) * 4;
+
+        iconPixels[off] = c.r;
+        iconPixels[off + 1] = c.g;
+        iconPixels[off + 2] = c.b;
+        iconPixels[off + 3] = c.a;
+      }
+
+      if (age !== 0) console.log(y, age);
+    }
+  }
+
+  let borderColor = shaders[mat]({rand: 1.5, age: 0.075});
 
   iconCtx.putImageData(iconImgData, 0, 0);
   
@@ -215,11 +242,6 @@ function makeMatIcon(mat, el) {
 function materialDisplayText(mat) {
   let d = mat.toString().replace('_', ' ');
   return d[0].toUpperCase() + d.substring(1);
-}
-
-function resizeMatOpener() {
-  materialMenuOpenerEl.style.width = '40px';
-  materialMenuOpenerEl.style.height = '40px';
 }
 
 function makeMatMenu() {
@@ -243,8 +265,7 @@ function makeMatMenu() {
 
       mouseSelected = chosenMat;
 
-      makeMatIcon(mouseSelected, materialMenuOpenerEl);
-      resizeMatOpener();
+      materialMenuOpenerEl.src = this.firstChild.src;
 
       materialMenuEl.className = '';
     };
@@ -255,7 +276,6 @@ function makeMatMenu() {
   }
 
   makeMatIcon(mouseSelected, materialMenuOpenerEl);
-  resizeMatOpener();
 
   materialMenuOpenerEl.onclick = toggleMaterialMenu;
 }
@@ -273,8 +293,8 @@ function initTiles() {
   newTiles = newTiles.map((p, x) => p.map((t, y) => {
     t.rand = BetterMath.random();
     
-    t.x = x;
-    t.y = y;
+    //t.x = x;
+    //t.y = y;
     
     return t;
   }));
@@ -322,12 +342,29 @@ function initScaleSelect() {
   };
 }
 
-function resizeCanvas() {
-  scaleFactor = parseFloat(scaleSelectEl.value);
+function resizeCanvas(load = false) {
+  if (!load) scaleFactor = parseFloat(scaleSelectEl.value);
   
   viewportWidth = Math.floor(window.innerWidth / scaleFactor);
   viewportHeight = Math.floor(window.innerHeight / scaleFactor);
-  
+
+  if (load && (worldWidth !== viewportWidth || worldHeight !== viewportHeight)) {
+    if (viewportWidth > worldWidth) {
+      let sW = window.innerWidth / worldWidth;
+      let sH = window.innerHeight / worldHeight;
+
+      scaleFactor = sW > sH ? sW : sH;
+
+      //scaleFactor = parseFloat((scaleFactor + 0.1).toFixed(2));
+      return resizeCanvas(true);
+    }
+  }
+
+  /*if (worldWidth > viewportWidth || worldHeight > viewportHeight) {
+    scaleFactor += 2;
+    return resizeCanvas();
+  }*/
+
   canvas.width = viewportWidth;
   canvas.height = viewportHeight;
   
@@ -337,8 +374,18 @@ function resizeCanvas() {
   imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
   pixels = imgData.data;
 
-  let aPadding = `${Math.floor(scaleFactor * 1.8)}px`;
-  let lPadding = `${Math.floor(scaleFactor * 1.8) + 70}px`;
+  let aPadding = `${Math.floor(scaleFactor * 2)}px`;
+  let lPadding = `${Math.floor(scaleFactor * 2) + 70}px`;
+
+  let pauseSize = `calc(100% - ${Math.floor(scaleFactor * 2) * 2}px)`;
+
+  pauseMenuEl.style.padding = aPadding;
+  pauseMenuEl.style.width = pauseSize;
+  pauseMenuEl.style.height = pauseSize;
+
+  loadMenuEl.style.padding = aPadding;
+  loadMenuEl.style.width = pauseSize;
+  loadMenuEl.style.height = pauseSize;
 
   infoEl.style.padding = aPadding;
   infoEl.style.paddingLeft = lPadding;
@@ -346,13 +393,13 @@ function resizeCanvas() {
 
   materialMenuOpenerEl.style.margin = aPadding;
 
-  if (worldFullscreen || (viewportWidth > worldWidth || viewportHeight > worldHeight)) initTiles();
+  if (load === false && (worldFullscreen || (viewportWidth > worldWidth || viewportHeight > worldHeight))) initTiles();
 }
 
 function mouseTargetCheck(e) {
   let path = event.path || (event.composedPath && event.composedPath());
 
-  return e.target.localName === 'select' || e.target.localName === 'option' || e.target.localName === 'input' || e.target.className.includes('material') || path[1].className.includes('material');
+  return e.target.localName === 'select' || e.target.localName === 'option' || e.target.localName === 'input' || e.target.className.includes('material') || path[1].className.includes('material') || path.some((x) => x.id && x.id.includes('Menu'));
 }
 
 function mouseDownHandler(e) {
@@ -374,7 +421,11 @@ function mouseDownHandler(e) {
   mouseDown = true;
 }
 
+let oldMouseActual = {x: 0, y: 0};
+
 function mouseMoveHandler(e) {
+  let oldMousePos = Object.assign({}, mousePos);
+
   mousePos = {x: e.clientX, y: e.clientY};
   
   overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
@@ -383,7 +434,7 @@ function mouseMoveHandler(e) {
 
   let actualPosX = Math.floor(mousePos.x / scaleFactor);
   let actualPosY = Math.floor(mousePos.y / scaleFactor);
-  
+
   let surrounding = Math.floor(mouseDrawSize / 2);
   let evenAdd = mouseDrawSize % 2 === 1 ? 0 : 1;
   
@@ -395,12 +446,35 @@ function mouseMoveHandler(e) {
   overlayCtx.strokeStyle = 'white';
   
   let size = (surrounding * 2) - evenAdd + 1;
+  let oSize = Math.floor(size * scaleFactor);
   
   overlayCtx.beginPath();
-  overlayCtx.rect(left, top, Math.floor(scaleFactor * size), Math.floor(scaleFactor * size));
+  overlayCtx.rect(left, top, oSize, oSize);
   overlayCtx.stroke();  
   
-  if (mouseDown) mouseDraw();
+  if (mouseDown) {
+    let x1 = oldMouseActual.x;
+    let y1 = oldMouseActual.y;
+
+    let x2 = actualPosX;
+    let y2 = actualPosY;
+
+    let x = Number(x1);
+
+    let m = (y2 - y1) / (x2 - x1);
+
+    while (x != x2) {
+      let y = Math.floor(m * (x - x1) + y1);
+
+      mouseDraw({x, y}, true);
+
+      x += x < x2 ? 1 : -1;
+    }
+  }
+
+  tileInfoEl.innerText = materialDisplayText(tiles[actualPosY][actualPosX].material);
+
+  oldMouseActual = {x: actualPosX, y: actualPosY};
 }
 
 function mouseUpHandler(e) {
@@ -414,9 +488,9 @@ function mouseUpHandler(e) {
   }
 }
 
-function mouseDraw(pos = mousePos) {
-  let actualPosX = cameraX + Math.floor(pos.x / scaleFactor);
-  let actualPosY = cameraY + Math.floor(pos.y / scaleFactor);
+function mouseDraw(pos = mousePos, already = false) {
+  let actualPosX = cameraX + (already ? pos.x : Math.floor(pos.x / scaleFactor));
+  let actualPosY = cameraY + (already ? pos.y : Math.floor(pos.y / scaleFactor));
   
   tiles[actualPosY][actualPosX].age = 0;
   
@@ -467,13 +541,11 @@ window.onload = function() {
   overlayCanvas.style.height = '100%';
 
   iconCanvas = document.createElement('canvas');
-  iconCanvas.width = iconCanvasPixelSize;
-  iconCanvas.height = iconCanvasPixelSize;
+  iconCanvas.width = iconTileSize;
+  iconCanvas.height = iconTileSize;
   iconCanvas.id = 'iconCanvas';
   
-  document.body.prepend(iconCanvas);
-  document.body.prepend(overlayCanvas);
-  document.body.prepend(canvas);
+  document.body.append(iconCanvas, overlayCanvas, canvas);
 
   // LoadingDisplay.write('Getting contexts...');
   
@@ -486,9 +558,6 @@ window.onload = function() {
   imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
   pixels = imgData.data;
 
-  iconImgData = iconCtx.getImageData(0, 0, iconCanvasPixelSize, iconCanvasPixelSize);
-  iconPixels = iconImgData.data;
-
   // LoadingDisplay.write('\nInitialising tiles...');
 
   initTiles();
@@ -499,7 +568,6 @@ window.onload = function() {
   
   // LoadingDisplay.write('\nRunning initial update...');
 
-  detailedInfoEl = document.getElementById('detailedInfo');
   fpsEl = document.getElementById('fps');
 
   update();
@@ -517,7 +585,24 @@ window.onload = function() {
   faucetCheckboxEl = document.getElementById('faucetCheckbox');
   cursorSelectEl = document.getElementById('cursorSelect');
   infoEl = document.getElementById('info');
-  
+  tileInfoEl = document.getElementById('tileInfo');
+  pauseMenuEl = document.getElementById('pauseMenu'); 
+  saveOpenEl = document.getElementById('saveOpen');
+  loadOpenEl = document.getElementById('loadOpen');
+  loadMenuEl = document.getElementById('loadMenu');
+
+  saveOpenEl.onclick = function() {
+    SaveUI.saveWorld(tiles);
+  };
+
+  loadOpenEl.onclick = function() {
+    pauseMenuEl.className = '';
+
+    loadMenuEl.className = loadMenuEl.className === 'show' ? '' : 'show';
+  };
+
+  SaveUI.createLoadMenu();  
+
   /*frameLockCheckboxEl = document.getElementById('framelockCheckbox');
   frameLockCheckboxEl.onchange = function(e) {
     useRequestAnim = frameLockCheckboxEl.checked;
@@ -559,50 +644,62 @@ window.onload = function() {
     resizeCanvas();
   };
   
-  document.onkeypress = function(e) {
-    if (e.key === 'p') {
-      /*if (PerfOverlay.enabled) {
+  document.onkeydown = function(e) {
+    console.log(e);
+
+    let key = e.key.toLowerCase();
+  
+    if (key === 'p') {
+      if (e.shiftKey) {
+        PerfOverlay.cycleThroughTitles();
+        return;
+      }
+
+      if (PerfOverlay.enabled) {
         PerfOverlay.off();
       } else {
         PerfOverlay.on();
-      }*/
+      }
 
-      detailedInfoEl.className = detailedInfoEl.className === 'show' ? '' : 'show';
+      fpsEl.className = fpsEl.className === 'show' ? '' : 'show';
     }
     
-    if (e.key === 'w') {
+    if (key === 'w') {
       if (cameraY > 0) {
         cameraY--;
       }
     }
     
-    if (e.key === 's') {
+    if (key === 's') {
       if (cameraY + viewportHeight < worldHeight) {
         cameraY++;
       }
     }
     
-    if (e.key === 'a') {
+    if (key === 'a') {
       if (cameraX > 0) {
         cameraX--;
       }
     }
     
-    if (e.key === 'd') {
+    if (key === 'd') {
       if (cameraX + viewportWidth < worldWidth) {
         cameraX++;
       }
     }
     
-    if (e.key === ' ') {
+    if (key === ' ') {
       paused = !paused;
     }
 
-    if (e.key === 'h') {
-      infoEl.style.opacity = (infoEl.style.opacity || '0.6') === '0.6' ? 0 : 0.6;
+    if (key === 'escape') {
+      if (loadMenuEl.className !== 'show') pauseMenuEl.className = pauseMenuEl.className === 'show' ? '' : 'show';
+      loadMenuEl.className = '';
+
+      paused = !paused;
     }
 
-    if (e.key === 'm') {
+    if (key === 'm') {
       toggleMaterialMenu();
     }
   };
@@ -654,8 +751,7 @@ function moveTile(originalTile, newTile, oX, oY, nX, nY) {
 let lastStartTime;
 let lastSecond = performance.now();
 let recentAge = 0;
-let timeFactor = 0.01;
-let originalTimeFactor = Number(timeFactor);
+let timeFactor = 0.0125;
 
 let ticksTotal = 0;
 let ticksPerSecond = 0;
@@ -673,9 +769,9 @@ export function update() {
   recentAge += deltaTime;
   
   if (recentAge / timeFactor > 3) {
-    recentAge = 0;
+    //recentAge = 0;
   }
-  
+
   for (var ticksDone = 1; ticksDone < recentAge / timeFactor; ticksDone++) {
     for (let x = cameraX - viewportSimRadius; x < cameraX + viewportWidth + viewportSimRadius; x++) {
       for (let y = cameraY - viewportSimRadius; y < cameraY + viewportHeight + viewportSimRadius; y++) {
@@ -683,8 +779,16 @@ export function update() {
         if ((x < 0 || x >= worldWidth) || (y < 0 || y >= worldHeight)) continue;
         
         // let realDeltaTime = deltaTime / Math.floor(recentAge / factor);
-        
-        let t = tiles[y][x];
+
+        let t;
+        try {
+          t = tiles[y][x];
+        } catch (e) {
+          console.error(e);
+          console.log(x, y);
+          console.log(viewportWidth, viewportHeight);
+          console.log(worldWidth, worldHeight);
+        }
         
         if (!paused && ticksDone === 1) t.age += deltaTime;
         
@@ -716,7 +820,7 @@ export function update() {
           belowTile.age = 0;
         }
         
-        let c = materialColors[t.material](t);
+        let c = shaders[t.material](t);
         
         let randIncrease = liquidLookup[t.material] && t.material !== 'air' ? ((BetterMath.random() * 2 - 1) / 20) : 0;
         randIncrease = t.material === 'fire' ? ((BetterMath.random() * 2 - 1) / 5) : randIncrease;
@@ -730,7 +834,7 @@ export function update() {
           let orig = Number(t.rand);
           t.rand = 2;
           
-          c = materialColors[t.material](t);
+          c = shaders[t.material](t);
           
           t.rand = orig;
         }
@@ -746,8 +850,11 @@ export function update() {
                 let belowLeftTile = y < worldHeight - 1 ? tiles[y + 1][x - 1] || {material: 'nonExistant', typeUpdated: false, reactionUpdated: false} : {material: 'nonExistant', typeUpdated: false, reactionUpdated: false};
                 let belowRightTile = y < worldHeight - 1 ? tiles[y + 1][x + 1] || {material: 'nonExistant', typeUpdated: false, reactionUpdated: false} : {material: 'nonExistant', typeUpdated: false, reactionUpdated: false};
                 
-                let belowLeftAvaliable = liquidLookup[belowLeftTile.material] && densityLookup[belowLeftTile.material] < densityLookup[t.material];
-                let belowRightAvaliable = liquidLookup[belowRightTile.material] && densityLookup[belowRightTile.material] < densityLookup[t.material];
+                let sameLeftAvaliable = densityLookup[sameLeftTile.material] < densityLookup[t.material];
+                let sameRightAvaliable = densityLookup[sameRightTile.material] < densityLookup[t.material];
+
+                let belowLeftAvaliable = sameLeftAvaliable && liquidLookup[belowLeftTile.material] && densityLookup[belowLeftTile.material] < densityLookup[t.material];
+                let belowRightAvaliable = sameRightAvaliable && liquidLookup[belowRightTile.material] && densityLookup[belowRightTile.material] < densityLookup[t.material];
                 
                 if (belowLeftAvaliable && belowRightAvaliable) {
                   if (BetterMath.random() >= 0.5) {
@@ -766,9 +873,6 @@ export function update() {
                 }
                 
                 if (liquidLookup[t.material] && !belowLeftAvaliable && !belowRightAvaliable && BetterMath.random() > (viscosityLookup[t.material] / 100)) {
-                  let sameLeftAvaliable = densityLookup[sameLeftTile.material] < densityLookup[t.material];
-                  let sameRightAvaliable = densityLookup[sameRightTile.material] < densityLookup[t.material];
-                  
                   if (sameLeftAvaliable && sameRightAvaliable) {
                     if (BetterMath.random() >= 0.5) {
                       moveTile(t, sameRightTile, x, y, x + 1, y);
@@ -777,11 +881,11 @@ export function update() {
                     }
                   } else {
                     if (sameLeftAvaliable) {
-                      moveTile(t, sameLeftTile, x, y, x + 1, y);
+                      moveTile(t, sameLeftTile, x, y, x - 1, y);
                     }
                     
                     if (sameRightAvaliable) {
-                      moveTile(t, sameRightTile, x, y, x - 1, y);
+                      moveTile(t, sameRightTile, x, y, x + 1, y);
                     }
                   }
                 }
@@ -807,14 +911,14 @@ export function update() {
                 
                 if (r.reactantStay !== thisIndex) {
                   t.material = product;
-                  //t.reactionUpdated = true;
+                  t.forced = undefined;
                   reactionUpdatedMap[y][x] = true;
                   t.age = 0;
                 }
                 
                 if (r.reactantStay !== (thisIndex === 0 ? 1 : 0)) {
                   neighbouringTile.material = product;
-                  //neighbouringTile.reactionUpdated = true;
+                  neighbouringTile.forced = undefined;
 
                   let nX = x;
                   let nY = y;
@@ -850,7 +954,7 @@ export function update() {
             }
           }
           
-          if (floatLookup[t.material]) {
+          if (gasLookup[t.material]) {
             if (densityLookup[aboveTile.material] < densityLookup[t.material]) {
               moveTile(t, aboveTile, x, y, x, y - 1);
             }
@@ -867,7 +971,7 @@ export function update() {
             delete t.forced;
           }
           
-          c = materialColors[t.material](t);
+          c = shaders[t.material](t);
         }
         
         if ((!paused || t.age === 0) && ticksDone === (recentAge / timeFactor | 0) && (x >= cameraX && x < cameraX + viewportWidth) && (y >= cameraY && y < cameraY + viewportHeight)) {
@@ -914,13 +1018,9 @@ export function update() {
     ticksTotal = 0;
   }
 
-  if (detailedInfoEl.className !== 'show') return;
-  
-  if (detailedInfoEl.className !== 'show') return;
+  if (fpsEl.className !== 'show') return;
 
   let timeTaken = performance.now() - startTime;
-  
-  addTime(ticksDone - 1); //timeTaken);
   
   if (!lastCalledTime) {
     lastCalledTime = performance.now();
@@ -935,7 +1035,28 @@ export function update() {
 
     if (fpsArr.length > 1000) fpsArr.pop();
 
-    fpsEl.innerText = `${Math.floor(timeTaken)}ms - ${ticksDone - 1} ticks - ${ticksPerSecond} TPS - FPS: ${(fpsArr.reduce(( p, c ) => p + c, 0) / fpsArr.length).toFixed(0)} avg, ${Math.max(...fpsArr)} max, ${Math.min(...fpsArr)} min`;
+    fpsEl.innerText = `FPS: ${(fpsArr.reduce((p, c) => p + c, 0) / fpsArr.length).toFixed(0)} avg, ${Math.max(...fpsArr)} max, ${Math.min(...fpsArr)} min
+Frame took ${Math.floor(timeTaken)}ms
+
+${ticksDone - 1} ticks this frame
+${ticksPerSecond} TPS (Aim: ${1 / timeFactor})
+
+Memory: ${(window.performance.memory.usedJSHeapSize / 1000000).toFixed(2)}MB/${(window.performance.memory.totalJSHeapSize / 1000000).toFixed(2)}MB`;
+  }
+
+  switch (PerfOverlay.currentTitle) {
+    case 'ticks per second':
+      PerfOverlay.addValue(ticksDone - 1);
+      break;
+    case 'memory usage':
+      PerfOverlay.addValue(window.performance.memory.usedJSHeapSize / 1000000);
+      break;
+    case 'frames per second':
+      PerfOverlay.addValue(fps);
+      break;
+    case 'frame time':
+      PerfOverlay.addValue(timeTaken);
+      break;
   }
 }
 
@@ -945,5 +1066,22 @@ let typeUpdatedMap = ar(worldWidth, worldHeight, false);
 let fpsArr = [];
 
 function ar(x,y,cont) {
-  return new Array(y).fill(0).map(()=>Array(x).fill(cont))
+  return new Array(y).fill(0).map(()=>Array(x).fill(cont));
 }
+
+window.overrideTiles = function(t, w, h) {
+  tiles = t.slice();
+  worldWidth = Number(w);
+  worldHeight = Number(h);
+
+  cameraX = 0;
+  cameraY = 0;
+
+  resizeCanvas(true);
+};
+
+window.overridePause = function(p) {
+  paused = p
+};
+
+window.getTiles = function() { return tiles; };

@@ -1,7 +1,7 @@
 {
   "name": "s4ndb0x",
-  "version": "1.0.0",
-  "description": "Genetic evolution / creature simulator.",
+  "version": "4.0.0",
+  "description": "A falling sand physics sandbox webapp.",
   "main": "code.js",
   "scripts": {
     "dev": "parcel src/index.html",
@@ -12,8 +12,8 @@
     "url": "git+https://github.com/oojmed/evobox.git"
   },
   "keywords": [
-    "chemistry",
-    "webapp"
+    "sandbox",
+    "physics"
   ],
   "author": "Oojmed",
   "license": "MIT",

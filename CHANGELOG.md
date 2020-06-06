@@ -1,5 +1,36 @@
 # s4ndb0x changelog
 
+## v4.0.0
+- Changed density of concrete
+- Material of selected / hovered over tile is now shown in the top left
+- Can no longer select / highlight the material picker icon
+- More accurate mouse drawing
+- More slight optimisations in mouse events
+- Small refactoring in some areas
+- Tweaked styling of panels
+- Panels / settings are now hidden by default
+- Escape now triggers panels to show and pauses time
+- No longer make a new icon every time a material is chosen
+- Fixed bug where all liquids were very viscous
+- Fixed bug where UI could still be interacted with even if it was hidden
+- Padding for info text increased
+- Made styling for material picker opener more compatible
+- Reduced memory usage
+- Static materials now use line shape instead of pyramid / powder shape in the material picker
+- Added save system - you can now save and load worlds
+- Materials no longer move through walls with no corners
+- Increased reaction speed of concrete turning into stone with air
+- Increased reaction speed of dirt turning into grass with air
+- Keyboard shortcuts now work with caps lock
+- Performance graphs now support several types of graphs displaying different aspects
+- New debug overlay in top right corner
+- Shift+P now cycles through performance graphs
+- Reenabled showing performance graph on P shortcut
+- Performance graph now shows numbers on the Y axis
+- Performance graph: Values over a certain threshold no longer show as red lines
+- Removed detailed info (version)
+
+
 ## v3.6.0
 - Added concrete - slowly turns to stone
 

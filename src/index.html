@@ -27,19 +27,42 @@
 </head>
 
 <body>
+    <pre id="fps"></pre>
+
     <div id="info">
-        <div>
+        <span id="tileInfo"></span>
+    </div>
+
+    <div id="pauseMenu">
+        <div>Paused</div>
+
+        <div class="settingPanel">
             <b>Drawing Settings</b><br>
             Cursor: <select id="cursorSelect"></select> <br>
             Faucet: <input type="checkbox" id="faucetCheckbox"> <img id="testImage">
-        </div> <div>
+        </div>
+
+        <div class="settingPanel">
             <b>Simulation Settings</b> <br>
             Scale: <select id="scaleSelect"></select> <br>
+            <br>
             <!-- world fullscreen: <input checked type="checkbox" id="worldFullscreenCheckbox"> -->
             <!-- framelock: <input type="checkbox" id="framelockCheckbox"> <br>-->
         </div>
 
-        <span id="detailedInfo">s4ndb0x v3.6.0-39 | <span id="fps">Loading...</span></span>
+        <hr class="settingPanelDivide">
+
+        <div class="settingButton" id="saveOpen">
+            Save
+        </div>
+
+        <div class="settingButton" id="loadOpen">
+            Load
+        </div>
+    </div>
+
+    <div id="loadMenu">
+        
     </div>
 
     <div id="materialMenu"></div>
